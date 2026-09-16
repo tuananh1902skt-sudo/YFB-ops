@@ -12,6 +12,8 @@ nhập dữ liệu nền tảng → tách kết quả từng ca → KPI → báo
 | `03_TIKTOK_DATA_MAPPING.md` | Ánh xạ từng cột của 2 file export TikTok sang trường chuẩn | Khi làm import engine |
 | `04_DATABASE_SCHEMA.md` | Schema PostgreSQL đầy đủ + RLS | Khi viết migration |
 | `05_KPI_DICTIONARY.md` | Công thức chính xác mọi chỉ số, chỉ số nào cấm tính ở cấp nào | Khi làm dashboard/báo cáo |
+| `06_UI_UX_SPEC.md` | Danh sách màn hình, luồng chính, quy ước hiển thị số | Khi làm giao diện |
+| `07_TEST_CASES.md` | Bộ kiểm thử dựng từ dữ liệu thật + điều kiện hoàn thành | Khi viết engine và test |
 
 ---
 
@@ -39,6 +41,8 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Mapping dữ liệu TikTok
 - [x] Database schema
 - [x] KPI dictionary
+- [x] UI/UX spec
+- [x] Test cases từ dữ liệu thật
 - [ ] Migration & khởi tạo project
 - [ ] Import engine
 - [ ] Attribution engine
