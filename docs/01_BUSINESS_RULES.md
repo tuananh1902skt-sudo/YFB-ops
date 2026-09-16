@@ -284,20 +284,22 @@ Hai kết luận bắt buộc phải tôn trọng trong toàn hệ thống:
    có ca live nào → ads chạy cả ngoài giờ live, và (theo mục 3) có thể phục vụ cả ca
    in-house của brand.
 
-**Quy tắc thiết kế:**
+**Đã chốt — ads NẰM NGOÀI SCOPE hiện tại.** TikTok không export được ads ở độ mịn nhỏ
+hơn ngày, nên không có phương án tính đúng ads ở cấp ca. Quyết định: **tạm gác phần ads,
+tìm phương án sau.**
 
-- `ads_daily` lưu ở độ mịn **(platform_account, ngày)** — đây là source of truth, số
-  liệu thật, confidence `HIGH`.
-- ROAS/ROI ở cấp **ngày hoặc kỳ** được phép hiển thị, nhưng phải đặt tên đúng là **"ROAS
-  toàn shop"**, tuyệt đối không gọi là "ROAS của ca live" hay "ROAS của host".
-- Ads spend ở cấp **ca** chỉ được phép tồn tại dưới dạng **ƯỚC LƯỢNG** (`ESTIMATED`),
-  phân bổ theo rule cấu hình được (mặc định đề xuất: theo tỷ trọng GMV live của ca đó
-  trên tổng GMV live trong ngày, chỉ tính phần `AGENCY`), và **luôn hiển thị nhãn ước
-  lượng** trên UI.
-- Con số ước lượng này **không được dùng** để tính doanh thu/chi phí hợp đồng với client
-  hay lương thưởng, trừ khi có phê duyệt rõ ràng và ghi audit log.
-- `[TBD]` Voucher spend: chưa có nguồn dữ liệu. Thiết kế sẵn bảng nhưng chưa build UI
-  nhập liệu ở MVP.
+Trong scope này:
+
+- `ads_daily` vẫn được lưu ở độ mịn **(platform_account, ngày)** — đây là số thật,
+  confidence `HIGH`. Chỉ lưu và hiển thị, không suy diễn thêm.
+- ROAS/ROI chỉ hiển thị ở cấp **ngày hoặc kỳ**, và phải đặt tên đúng là **"ROAS toàn
+  shop"** — tuyệt đối không gọi là "ROAS của ca live" hay "ROAS của host".
+- **Không build** tính năng phân bổ ads spend xuống từng ca ở giai đoạn này. Không hiển
+  thị bất kỳ con số ads nào ở cấp ca, kể cả dạng ước lượng — tránh tạo thói quen tin vào
+  số sai.
+- Schema phải chừa sẵn chỗ (`ads_daily` tách bảng riêng, không nhét vào bảng ca) để sau
+  này có nguồn dữ liệu tốt hơn thì gắn vào mà không phải migrate lớn.
+- `[TBD]` Voucher spend: chưa có nguồn dữ liệu, cùng nhóm hoãn với ads.
 
 ---
 
@@ -316,14 +318,20 @@ tại**. Trong scope này:
 
 ---
 
-## 12. Câu hỏi còn mở
+## 12. Các quy ước đã chốt khác
 
-1. `[TBD]` Voucher spend — nguồn dữ liệu, cách nhập (xem mục 10).
-2. `[TBD]` Rule phân bổ ads spend xuống ca: xác nhận dùng mặc định "theo tỷ trọng GMV
-   live của ca trong ngày" hay muốn cách khác (ví dụ theo số giờ live).
-3. `[TBD]` File ads export theo từng brand riêng hay 1 file gộp nhiều brand? (File mẫu
-   hiện tại không có cột phân biệt brand/account → nếu agency chạy nhiều brand, khi
-   import phải cho người dùng **chọn brand/account** thủ công cho từng file.)
+- **Múi giờ**: toàn bộ thời gian trong file export TikTok là **GMT+7
+  (`Asia/Ho_Chi_Minh`)**. Lưu `timestamptz` trong DB, hiển thị theo GMT+7. Ngày vận hành
+  (`session_date`) của ca kết thúc sau nửa đêm vẫn tính theo **ngày bắt đầu ca**, không
+  tách đôi.
+- **Ý nghĩa cột `End Time`**: đã xác nhận — khi tải report giữa lúc Room còn đang live,
+  `End Time` = **đúng thời điểm tải report**. Đây chính là mốc chốt số của snapshot, xác
+  nhận cơ chế delta ở mục 6 chạy đúng: mỗi lần trợ live tải report là một mốc cắt chính
+  xác tại ranh giới ca.
+- **File ads không có cột phân biệt brand** → khi import, người dùng **bắt buộc chọn
+  `platform_account`** thủ công.
+
+Câu hỏi còn mở: `[TBD]` nguồn dữ liệu voucher spend (cùng nhóm hoãn với ads).
 
 ---
 

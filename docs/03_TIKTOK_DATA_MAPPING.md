@@ -175,13 +175,16 @@ trùng lặp với dữ liệu ads đã import trước đó cho cùng account.
 
 ---
 
-## PHẦN D — Câu hỏi còn mở
+## PHẦN D — Các điểm đã xác nhận
 
-1. `[TBD]` Múi giờ của `Start Time`/`End Time` trong file live (giả định GMT+7) — cần
-   xác nhận để không lệch ngày ở các ca qua nửa đêm (file thật có nhiều ca kết thúc
-   00:00–00:36 hôm sau).
-2. `[TBD]` Khi trợ live tải report **giữa lúc Room đang chạy**, cột `End Time` hiển thị
-   thời điểm nào — thời điểm export hay để trống? Cần 1 file mẫu tải giữa ca để xác
-   nhận, vì đây là mốc sắp thứ tự snapshot của cơ chế delta.
-3. `[TBD]` File ads có export được theo độ mịn nhỏ hơn ngày (theo giờ / theo campaign)
-   không? Nếu có, độ chính xác ads ở cấp ca sẽ tăng đáng kể.
+1. **Múi giờ: GMT+7 (`Asia/Ho_Chi_Minh`)** cho toàn bộ `Start Time` / `End Time`.
+2. **`End Time` = thời điểm tải report** khi Room còn đang live (đã xác nhận với người
+   vận hành). Đây là điều kiện tiên quyết để cơ chế delta ở `01_BUSINESS_RULES.md` mục 6
+   hoạt động: mỗi lần trợ live tải report tạo ra một mốc cắt chính xác tại ranh giới ca.
+   Hệ quả: `snapshot_end_at` là khoá sắp xếp thứ tự snapshot trong cùng Room, và
+   `Duration` của snapshot giữa chừng là thời lượng **từ đầu Room tới lúc tải**, không
+   phải thời lượng ca.
+3. **Ads không export được nhỏ hơn cấp ngày.** Phần ads tạm gác lại, chỉ lưu số liệu
+   ngày, không phân bổ xuống ca (xem `01_BUSINESS_RULES.md` mục 10).
+
+Còn mở: `[TBD]` nguồn dữ liệu voucher spend.
