@@ -57,7 +57,14 @@ Mọi Live Session và mọi Room Snapshot phải có trường phân loại:
 |---|---|
 | `AGENCY` | Ca do agency vận hành (có host/trợ live của agency được assign) |
 | `BRAND_INHOUSE` | Ca do brand tự live, không phải người của agency |
-| `UNKNOWN` | Chưa xác định — mặc định khi phát hiện 1 khoảng Room không khớp với bất kỳ Live Session (agency) nào đã book; cần Operation xác nhận là in-house hay là ca agency bị thiếu dữ liệu booking |
+| `UNKNOWN` | Chưa xác định — mặc định khi phát hiện 1 khoảng Room không khớp với bất kỳ Live Session (agency) nào đã book |
+
+**Đã chốt — ai xác nhận**: khi hệ thống phát hiện đoạn `UNKNOWN`, **Operation** là người
+xác nhận đó là `BRAND_INHOUSE` hay là ca agency bị thiếu dữ liệu booking. Không tự động
+gán sau X giờ, không để trợ live tự quyết — vì phân loại này ảnh hưởng trực tiếp tới
+doanh thu agency (mục 9). Đoạn chưa xác nhận giữ nguyên `UNKNOWN` và **không** được tính
+vào bất kỳ KPI/doanh thu nào, đồng thời xuất hiện trong danh sách chờ xử lý của
+Operation.
 
 **Hệ quả bắt buộc:**
 - KPI/target achievement/host performance/doanh thu agency **chỉ tính trên các đoạn
@@ -110,6 +117,12 @@ luận hồi tố. Đây là input, không phải output, của attribution engi
 | `RESTART_STRATEGIC` | Operation | room_id cũ, room_id mới, lý do (làm mới traffic) | Giống RESTART_TECHNICAL về xử lý dữ liệu, khác ở lý do — dùng để phân tích hiệu quả của quyết định restart sau này |
 | `UPLOAD_CORRECTED` | Operation | import_id cũ, lý do | Dùng khi 1 file bị gắn nhầm ca — audit log bắt buộc |
 | `SESSION_ENDED` | Trợ live | session_id, actual_end | Mốc kết thúc thực tế |
+
+**Đã chốt — quy trình duyệt**: trợ live **tự log** tất cả event ở trên ngay tại thời
+điểm xảy ra, không cần chờ duyệt (không chặn vận hành). Operation **hậu kiểm** sau:
+event ở trạng thái `logged` → Operation review → `verified` hoặc `corrected` (kèm lý do,
+ghi audit log). KPI được tính ngay từ event `logged`, nếu sau đó Operation sửa thì hệ
+thống tính lại và lưu vết cả hai phiên bản.
 
 Mọi event đều có `created_by`, `created_at`, và với các event có "lý do" thì lý do là
 bắt buộc nhập (không cho để trống) — đây chính là dữ liệu Operation/Data Analyst cần để
@@ -188,11 +201,10 @@ Khi 1 snapshot mới được upload cho 1 Room đã có snapshot trước:
 - Thời điểm upload/`End Time` của snapshot mới phải sau snapshot trước — nếu trùng
   hoặc ngược, nghi vấn trùng file → chạy duplicate detection theo `Room ID` +
   `End Time`.
-- Room ID tái sử dụng sau khoảng trống dài bất thường (ví dụ vài ngày) không được coi
-  là tiếp nối — coi là Room mới độc lập. `[TBD]`: cần xác nhận ngưỡng thời gian hợp lý
-  (đề xuất mặc định: nếu khoảng trống giữa 2 lần thấy cùng Room ID > thời lượng tối đa
-  hợp lý của 1 ca, ví dụ 8 tiếng, thì coi là bất thường và đưa vào `NEEDS_REVIEW` thay
-  vì tự động nối).
+- Room ID tái sử dụng sau khoảng trống dài bất thường không được coi là tiếp nối. **Đã
+  chốt**: ngưỡng mặc định **8 tiếng** — nếu khoảng trống giữa 2 lần thấy cùng Room ID
+  vượt 8 tiếng, hệ thống không tự động nối mà đưa vào `NEEDS_REVIEW` để Operation quyết
+  định. Ngưỡng này để ở dạng cấu hình (system setting), không hard-code.
 
 ---
 
@@ -244,27 +256,78 @@ phải tách bạch — nó ảnh hưởng trực tiếp tới doanh thu tính �
 
 ---
 
-## 10. Câu hỏi còn mở / giả định cần xác nhận thêm
+## 10. Ads data — CẢNH BÁO LỆCH ĐỘ MỊN (granularity mismatch)
 
-Đánh dấu `[TBD]` — hệ thống vẫn build được với các giá trị mặc định hợp lý, nhưng cần
-bạn xác nhận trước khi khoá schema chính thức (file 04):
+Nguồn: file export `Campaign_overview_data_YYYYMMDD_-_YYYYMMDD.xlsx` (TikTok Ads, giao
+diện tiếng Việt), 7 cột: `Theo ngày`, `Chi phí`, `Số lượng đơn hàng SKU (Cửa hàng hiện
+tại)`, `Chi phí mỗi đơn hàng (Cửa hàng hiện tại)`, `Doanh thu gộp (Cửa hàng hiện tại)`,
+`ROI (Cửa hàng hiện tại)`, `Tiền tệ`. Dòng cuối là dòng TỔNG (`Theo ngày` = `-`) — phải
+loại bỏ khi import.
 
-1. Ngưỡng thời gian để coi 1 Room ID "quay lại" là restart hợp lệ của cùng 1 ca, hay là
-   phiên hoàn toàn không liên quan (đề xuất mặc định 8 tiếng — xem 6.6).
-2. Khi hệ thống phát hiện 1 đoạn Room không khớp bất kỳ Live Session nào đã book (ví dụ
-   brand tự live in-house ngoài giờ agency), ai là người phải xác nhận đó là
-   `BRAND_INHOUSE` — trợ live, Operation, hay tự động sau X giờ nếu không ai xác nhận?
-3. `ENDED_EARLY` và `OVERTIME_EXTENDED` có cần **duyệt** (approval) từ Operation, hay
-   trợ live tự log là đủ, duyệt để sau (hậu kiểm)?
-4. Ads spend / voucher spend — không có trong file `performance_detail` này. Nguồn dữ
-   liệu này lấy từ đâu (TikTok Ads Manager export riêng, hay nhập tay)? Cần biết để
-   thiết kế `ads_data` đúng cách nhập liệu.
-5. Refund/hoàn hàng — cũng không có trong file này (không thấy cột refund). Xác nhận có
-   cần track riêng không, và nguồn dữ liệu là gì.
+**Vấn đề cốt lõi: file ads chỉ có độ mịn THEO NGÀY, trong khi 1 ngày có nhiều ca live.**
+Không thể suy ra chính xác ads spend của từng ca từ nguồn này.
+
+Bằng chứng từ chính dữ liệu thật (đối chiếu 2 file):
+
+| Ngày | Ads spend | Ads "Doanh thu gộp" | Tổng GMV live cùng ngày |
+|---|---|---|---|
+| 2026-09-09 | 2,652,354đ | 132,952,442đ | 107,355,468đ (2 ca) |
+| 2026-09-16 | 100,225đ | 4,100,000đ | **không có ca live nào** |
+| 2026-09-17 | 2,819đ | 0đ | **không có ca live nào** |
+
+Hai kết luận bắt buộc phải tôn trọng trong toàn hệ thống:
+
+1. **Doanh thu ads ≠ doanh thu live.** Ngày 09/09 doanh thu ads (133M) **lớn hơn** tổng
+   GMV live cả ngày (107M) → ads chạy cho cả video, product card, shop, không riêng
+   live. Không được lấy `Doanh thu gộp` của ads làm "GMV live do ads mang lại".
+2. **Ads spend không chỉ thuộc về ca agency.** Ngày 16-17/09 có chi phí ads nhưng không
+   có ca live nào → ads chạy cả ngoài giờ live, và (theo mục 3) có thể phục vụ cả ca
+   in-house của brand.
+
+**Quy tắc thiết kế:**
+
+- `ads_daily` lưu ở độ mịn **(platform_account, ngày)** — đây là source of truth, số
+  liệu thật, confidence `HIGH`.
+- ROAS/ROI ở cấp **ngày hoặc kỳ** được phép hiển thị, nhưng phải đặt tên đúng là **"ROAS
+  toàn shop"**, tuyệt đối không gọi là "ROAS của ca live" hay "ROAS của host".
+- Ads spend ở cấp **ca** chỉ được phép tồn tại dưới dạng **ƯỚC LƯỢNG** (`ESTIMATED`),
+  phân bổ theo rule cấu hình được (mặc định đề xuất: theo tỷ trọng GMV live của ca đó
+  trên tổng GMV live trong ngày, chỉ tính phần `AGENCY`), và **luôn hiển thị nhãn ước
+  lượng** trên UI.
+- Con số ước lượng này **không được dùng** để tính doanh thu/chi phí hợp đồng với client
+  hay lương thưởng, trừ khi có phê duyệt rõ ràng và ghi audit log.
+- `[TBD]` Voucher spend: chưa có nguồn dữ liệu. Thiết kế sẵn bảng nhưng chưa build UI
+  nhập liệu ở MVP.
 
 ---
 
-## 11. Điều KHÔNG được làm (non-negotiable)
+## 11. Refund / hoàn hàng
+
+**Đã chốt**: refund chỉ xác định được chính xác sau ~15 ngày, nằm **ngoài scope hiện
+tại**. Trong scope này:
+
+- GMV từ TikTok được coi là **GMV gộp** (chưa trừ hoàn).
+- Hệ thống lưu một **tỷ lệ hoàn ước tính** (`estimated_refund_rate`) cấu hình được theo
+  từng `platform_account` (mỗi account một tỷ lệ riêng).
+- NMV ước tính = `GMV × (1 − estimated_refund_rate)`, luôn gắn nhãn `ESTIMATED`.
+- Với brand tính phí theo %NMV (mục 9), doanh thu agency hiển thị là **ước tính**, và
+  thiết kế phải chừa sẵn chỗ để sau này đối soát lại bằng số refund thật khi có (không
+  build ở MVP, nhưng schema không được cản đường).
+
+---
+
+## 12. Câu hỏi còn mở
+
+1. `[TBD]` Voucher spend — nguồn dữ liệu, cách nhập (xem mục 10).
+2. `[TBD]` Rule phân bổ ads spend xuống ca: xác nhận dùng mặc định "theo tỷ trọng GMV
+   live của ca trong ngày" hay muốn cách khác (ví dụ theo số giờ live).
+3. `[TBD]` File ads export theo từng brand riêng hay 1 file gộp nhiều brand? (File mẫu
+   hiện tại không có cột phân biệt brand/account → nếu agency chạy nhiều brand, khi
+   import phải cho người dùng **chọn brand/account** thủ công cho từng file.)
+
+---
+
+## 13. Điều KHÔNG được làm (non-negotiable)
 
 - Không bao giờ tự động chia đều GMV giữa 2 ca khi thiếu snapshot — phải hiển thị
   `Shared/Unallocated` và chờ xác nhận thủ công.
@@ -274,3 +337,7 @@ bạn xác nhận trước khi khoá schema chính thức (file 04):
 - Không giả định 1 Room ID = 1 ca, và không giả định 1 ca = 1 Room ID, ở bất kỳ đâu
   trong code.
 - Không để trống lý do khi log `ENDED_EARLY`, `RESTART_TECHNICAL`, `RESTART_STRATEGIC`.
+- Không gọi ROAS/doanh thu ads là chỉ số của ca live hay của host — ads là số liệu cấp
+  ngày, cấp shop (mục 10).
+- Không dùng ads spend ước lượng ở cấp ca, hay NMV ước lượng từ tỷ lệ hoàn, để tính tiền
+  thật (hợp đồng, lương, thưởng) nếu chưa có phê duyệt và audit log.
