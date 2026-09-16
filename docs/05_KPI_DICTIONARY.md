@@ -208,7 +208,8 @@ Không đánh giá trợ live bằng GMV (họ không quyết định doanh thu)
 | **Tỷ lệ dữ liệu cần sửa** | `số ca bị UPLOAD_CORRECTED / tổng số ca × 100` | event log |
 | **Độ đầy đủ event log** | `số ca có đủ SESSION_STARTED và SESSION_ENDED / tổng số ca × 100` | event log |
 
-`[TBD]` Ngưỡng X phút cho "nộp dữ liệu đúng hạn" — đề xuất mặc định 30 phút.
+**Đã chốt**: ngưỡng "nộp dữ liệu đúng hạn" = **30 phút** kể từ khi ca kết thúc. Để ở dạng
+cấu hình hệ thống, không hard-code.
 
 ---
 
