@@ -46,16 +46,20 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Migration & khởi tạo project
 - [x] Import engine (parser + chống trùng + lưu trữ)
 - [x] Attribution engine (tách ca, đã chạy đúng trên file thật)
-- [ ] Màn hình upload & đối soát cho trợ live
-- [ ] Hàng đợi Operation (ca UNKNOWN, ca cần rà soát)
+- [x] Màn hình upload & đối soát cho trợ live
+- [x] Hàng đợi Operation + xác nhận ownership
 - [ ] Operations UI (planning, calendar, shift, session)
 - [ ] Dashboard
 
-Kiểm chứng nhanh trên một file thật, không đụng database nào:
+Kiểm chứng nhanh, không đụng database thật:
 
 ```
-npx tsx scripts/dry-run-import.ts <file.xlsx>
+npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên file thật
+./scripts/verify-migrations.sh                  # ràng buộc nghiệp vụ ở tầng DB
+./scripts/verify-rls.sh                         # phân quyền theo từng vai trò
 ```
+
+Xem thử giao diện: `/demo/upload` và `/demo/operations`.
 
 ## Phạm vi đã thống nhất là CHƯA làm
 
