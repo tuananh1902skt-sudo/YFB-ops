@@ -284,8 +284,21 @@ export function createIngestRepository({ user, service }: Clients): IngestReposi
         .from('session_attributions')
         .update({ is_current: false })
         .in('session_id', sessionIds)
-        .eq('is_current', true);
+        .eq('is_current', true)
+        .neq('method', 'MANUAL');
       fail('đánh dấu attribution cũ', error);
+    },
+
+    async listManualOverrides(sessionIds) {
+      if (sessionIds.length === 0) return [];
+      const { data, error } = await service
+        .from('session_attributions')
+        .select('session_id,room_id')
+        .in('session_id', sessionIds)
+        .eq('is_current', true)
+        .eq('method', 'MANUAL');
+      fail('đọc kết quả Operation nhập tay', error);
+      return (data ?? []).map((row) => ({ sessionId: row.session_id, roomId: row.room_id }));
     },
 
     async insertAttributions(drafts: AttributionDraft[]) {

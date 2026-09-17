@@ -254,8 +254,20 @@ export class MemoryRepository implements IngestRepository {
 
   async supersedeAttributions(sessionIds: string[]): Promise<void> {
     for (const attribution of this.attributions) {
+      if (attribution.method === 'MANUAL') continue;
       if (sessionIds.includes(attribution.sessionId)) attribution.isCurrent = false;
     }
+  }
+
+  async listManualOverrides(sessionIds: string[]): Promise<{ sessionId: string; roomId: string }[]> {
+    return this.attributions
+      .filter(
+        (attribution) =>
+          attribution.isCurrent &&
+          attribution.method === 'MANUAL' &&
+          sessionIds.includes(attribution.sessionId),
+      )
+      .map((attribution) => ({ sessionId: attribution.sessionId, roomId: attribution.roomId }));
   }
 
   async insertAttributions(drafts: AttributionDraft[]): Promise<void> {

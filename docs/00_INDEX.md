@@ -48,7 +48,9 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Attribution engine (tách ca, đã chạy đúng trên file thật)
 - [x] Màn hình upload & đối soát cho trợ live
 - [x] Hàng đợi Operation + xác nhận ownership
-- [ ] Operations UI (planning, calendar, shift, session)
+- [x] Live Console — log sự kiện trong ca (event log là input của attribution)
+- [ ] Lịch live, tạo/sửa ca, phân ca
+- [ ] Chi tiết ca (truy vết "con số này ở đâu ra")
 - [ ] Dashboard
 
 Kiểm chứng nhanh, không đụng database thật:
@@ -59,7 +61,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 ./scripts/verify-rls.sh                         # phân quyền theo từng vai trò
 ```
 
-Xem thử giao diện: `/demo/upload` và `/demo/operations`.
+Xem thử giao diện: `/demo/upload`, `/demo/operations`, `/demo/live-console`.
 
 ## Phạm vi đã thống nhất là CHƯA làm
 

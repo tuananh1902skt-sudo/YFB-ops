@@ -172,6 +172,14 @@ export async function recomputeWindow(
     ),
   ];
 
+  // Every shift in the window is recomputed, including the ones that came out
+  // with nothing this time: a shift that loses its segments — because a logged
+  // handover moved the boundary, say — must lose its old figures with them,
+  // not keep showing a result nothing produces any more.
+  const recomputedSessionIds = [
+    ...new Set([...sessionIds, ...sessions.map((session) => session.id), ...discovered.map((item) => item.sessionId)]),
+  ];
+
   const outcomes: SessionOutcome[] = sessionIds.map((sessionId) => ({
     sessionId,
     drafts: computeSessionAttributions(sessionId, assignments),
@@ -185,8 +193,18 @@ export async function recomputeWindow(
       .map((assignment) => assignment.segment),
   }));
 
-  await repo.supersedeAttributions(sessionIds);
-  await repo.insertAttributions(outcomes.flatMap((outcome) => outcome.drafts));
+  const manual = new Set(
+    (await repo.listManualOverrides(recomputedSessionIds)).map(
+      (override) => `${override.sessionId}|${override.roomId}`,
+    ),
+  );
+
+  await repo.supersedeAttributions(recomputedSessionIds);
+  await repo.insertAttributions(
+    outcomes
+      .flatMap((outcome) => outcome.drafts)
+      .filter((draft) => !manual.has(`${draft.sessionId}|${draft.roomId}`)),
+  );
   await repo.updateSessionDataState(
     outcomes.map((outcome) => ({
       sessionId: outcome.sessionId,

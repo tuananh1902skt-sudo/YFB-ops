@@ -126,8 +126,14 @@ export interface IngestRepository {
   listSessionsInWindow(platformAccountId: string, from: Date, to: Date): Promise<SessionRecord[]>;
   createDiscoveredSession(input: DiscoveredSessionInput): Promise<SessionRecord>;
 
-  /** Marks the shift's current rows superseded; they stay for the audit trail. */
+  /**
+   * Marks the shifts' computed rows superseded; they stay for the audit trail.
+   * Manual overrides are left alone — Operation's decision outranks the engine
+   * until someone withdraws it.
+   */
   supersedeAttributions(sessionIds: string[]): Promise<void>;
+  /** (shift, room) pairs Operation has set by hand, which the engine must not overwrite. */
+  listManualOverrides(sessionIds: string[]): Promise<{ sessionId: string; roomId: string }[]>;
   insertAttributions(drafts: AttributionDraft[]): Promise<void>;
   updateSessionDataState(states: SessionDataState[]): Promise<void>;
 

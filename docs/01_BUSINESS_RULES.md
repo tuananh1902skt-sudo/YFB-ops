@@ -220,7 +220,27 @@ Operation. Lý do làm vậy thay vì để đoạn đó trôi nổi:
 
 Chừng nào còn `UNKNOWN`, đoạn đó **không vào bất kỳ KPI nào của agency** (mục 3).
 
-### 6.8. Tính lại, không cộng dồn
+### 6.8. Event log dịch ranh giới ca
+
+Các event sau **ghi đè mốc thực tế** của ca, và engine tách ca theo mốc thực tế trước,
+mốc kế hoạch chỉ là dự phòng:
+
+| Event | Tác dụng lên mốc thời gian |
+|---|---|
+| `SESSION_STARTED`, `HANDOVER_FROM_INHOUSE` | đặt `actual_start_at` |
+| `SESSION_ENDED`, `ENDED_EARLY`, `HANDOVER_TO_INHOUSE` | đặt `actual_end_at` |
+| `HANDOVER_AGENCY_TEAM` | đặt `actual_end_at` ca hiện tại **và** `actual_start_at` ca nhận, cùng một thời điểm |
+| `RESTART_*`, `HOST_CHANGED`, `ASSISTANT_CHANGED`, `OVERTIME_EXTENDED` | **không** dịch mốc nào |
+
+Lý do `OVERTIME_EXTENDED` không dịch mốc: OT là *lý do* ca chạy quá giờ kế hoạch, mốc
+kết thúc thật vẫn do `SESSION_ENDED` quyết định. Tương tự, restart và đổi người không
+tách ca mới nên không sinh ranh giới.
+
+Mỗi lần một event dịch mốc, hệ thống **tính lại** toàn bộ khoảng thời gian quanh đó
+(mục 6.8 dưới). Nhờ vậy ca nối bàn giao trễ 1 tiếng so với lịch vẫn nhận đúng phần của
+mình, thay vì bị đánh dấu `SHARED_UNALLOCATED`.
+
+### 6.9. Tính lại, không cộng dồn
 
 Kết quả ca luôn được **tính lại từ toàn bộ snapshot đang có**, không phải cộng thêm vào
 số cũ. Hệ quả:
@@ -230,6 +250,10 @@ số cũ. Hệ quả:
 - Dòng attribution cũ chuyển `is_current = false` chứ không bị xoá.
 - Upload trùng (cùng Room + cùng `End Time`) bị bỏ qua ở tầng ghi snapshot, nên không có
   đường nào để một lần upload lại làm số bị nhân đôi.
+- Ca mất hết đoạn sau khi tính lại thì **mất luôn kết quả cũ**, không giữ lại số không
+  còn cơ sở nào sinh ra.
+- Ngoại lệ duy nhất: dòng `method = 'MANUAL'` do Operation nhập tay **không bị engine ghi
+  đè**, cho tới khi chính Operation rút lại.
 
 ---
 
