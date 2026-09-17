@@ -26,6 +26,12 @@ interface StoredAttribution extends AttributionDraft {
   isCurrent: boolean;
 }
 
+export interface MemorySession extends SessionRecord {
+  discovered: boolean;
+  platformAccountId: string;
+  status: string;
+}
+
 /**
  * An in-memory store that repeats the constraints the migrations declare: a
  * rule the pipeline breaks here would be rejected by the database too.
@@ -44,7 +50,7 @@ export class MemoryRepository implements IngestRepository {
   rawRows: { id: string; importId: string; row: RawRowInput }[] = [];
   rooms: RoomRecord[] = [];
   snapshots: SnapshotRecord[] = [];
-  sessions: (SessionRecord & { discovered: boolean })[] = [];
+  sessions: MemorySession[] = [];
   attributions: StoredAttribution[] = [];
   sessionStates = new Map<string, SessionDataState>();
   ads: (AdsDailyRecord & { platformAccountId: string; importId: string })[] = [];
@@ -69,6 +75,7 @@ export class MemoryRepository implements IngestRepository {
    */
   seed(data: {
     settings?: Record<string, unknown>;
+    platformAccountId?: string;
     rooms?: RoomRecord[];
     snapshots?: SnapshotRecord[];
     sessions?: SessionRecord[];
@@ -77,7 +84,14 @@ export class MemoryRepository implements IngestRepository {
     if (data.settings) this.settings = data.settings;
     this.rooms.push(...(data.rooms ?? []));
     this.snapshots.push(...(data.snapshots ?? []));
-    this.sessions.push(...(data.sessions ?? []).map((session) => ({ ...session, discovered: false })));
+    this.sessions.push(
+      ...(data.sessions ?? []).map((session) => ({
+        ...session,
+        discovered: false,
+        platformAccountId: data.platformAccountId ?? '',
+        status: 'CONFIRMED',
+      })),
+    );
 
     for (const item of data.imports ?? []) {
       this.imports.push({
@@ -96,8 +110,20 @@ export class MemoryRepository implements IngestRepository {
     }
   }
 
-  addSession(session: Omit<SessionRecord, 'ownership'> & { ownership?: SessionRecord['ownership'] }): SessionRecord {
-    const record = { ...session, ownership: session.ownership ?? ('AGENCY' as const), discovered: false };
+  addSession(
+    session: Omit<SessionRecord, 'ownership'> & {
+      ownership?: SessionRecord['ownership'];
+      platformAccountId?: string;
+      status?: string;
+    },
+  ): MemorySession {
+    const record: MemorySession = {
+      ...session,
+      ownership: session.ownership ?? 'AGENCY',
+      discovered: false,
+      platformAccountId: session.platformAccountId ?? '',
+      status: session.status ?? 'CONFIRMED',
+    };
     this.sessions.push(record);
     return record;
   }
@@ -203,17 +229,24 @@ export class MemoryRepository implements IngestRepository {
   }
 
   async listSessionsInWindow(_accountId: string, from: Date, to: Date): Promise<SessionRecord[]> {
-    return this.sessions.filter((session) => session.startAt < to && session.endAt > from);
+    // Cancelled shifts never match a stretch of room time, exactly as the
+    // Supabase query does — otherwise a merged-away placeholder would keep
+    // claiming its old figures.
+    return this.sessions.filter(
+      (session) => session.status !== 'CANCELLED' && session.startAt < to && session.endAt > from,
+    );
   }
 
   async createDiscoveredSession(input: DiscoveredSessionInput): Promise<SessionRecord> {
-    const session = {
+    const session: MemorySession = {
       id: this.nextId('session'),
       brandId: 'brand-1',
-      ownership: 'UNKNOWN' as const,
+      ownership: 'UNKNOWN',
       startAt: input.startAt,
       endAt: input.endAt,
       discovered: true,
+      platformAccountId: input.platformAccountId,
+      status: 'DATA_PARTIAL',
     };
     this.sessions.push(session);
     return session;

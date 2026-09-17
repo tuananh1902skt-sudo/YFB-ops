@@ -1,3 +1,4 @@
+import { PageState as Empty } from '@/components/page-state';
 import { UploadScreen } from '@/components/upload/upload-screen';
 import { formatDate, formatTime } from '@/lib/format';
 import { createUserClient } from '@/lib/supabase/server';
@@ -5,15 +6,6 @@ import { createUserClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_GRACE_MINUTES = 30;
-
-function Empty({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-16">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="mt-2 text-base text-muted">{children}</p>
-    </main>
-  );
-}
 
 export default async function UploadPage() {
   let supabase;

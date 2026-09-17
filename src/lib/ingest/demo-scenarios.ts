@@ -4,6 +4,9 @@ import { importLivePerformance } from './live-import';
 import { MemoryRepository } from './memory-repository';
 import { previewLiveImport } from './preview';
 import { buildUploadPreview, type UploadPreview } from './upload-preview';
+import { sumUnallocated } from '../operations/unallocated';
+import { toPlatformDateString } from '../parsing/primitives';
+import type { QueueCount, UnknownStretch } from '../operations/types';
 
 /**
  * Runs the real engine over made-up shifts so the upload screen can be reviewed
@@ -141,4 +144,82 @@ export async function buildDemoScenarios(): Promise<DemoScenario[]> {
       preview: buildUploadPreview(unknown, context('4'.repeat(64)).fileName),
     },
   ];
+}
+
+/**
+ * The same made-up shifts, seen from Operation's side. The stretches and the
+ * unattributed total come out of the engine; the counts that need a schedule
+ * (overdue uploads, unstaffed shifts) are illustrative until real bookings exist.
+ */
+export async function buildOperationsDemo() {
+  const store = new MemoryRepository('ops:');
+  shifts(store);
+
+  // A shift whose boundary upload never arrived.
+  await importLivePerformance(store, context('5'.repeat(64)), parsed([AFTERNOON]));
+  // A stretch nobody booked — the brand streaming on their own.
+  await importLivePerformance(
+    store,
+    context('6'.repeat(64)),
+    parsed([row(4, '2026-09-11 09:00:00', '2026-09-11 11:00:00', '4200000', 7)]),
+  );
+
+  const unknownSessions = store.sessions.filter((session) => session.ownership === 'UNKNOWN');
+  const sharedRows = store.attributions.filter(
+    (attribution) => attribution.isCurrent && attribution.method === 'SHARED_UNALLOCATED',
+  );
+  const shared = sumUnallocated(
+    sharedRows.map((attribution) => {
+      const source = store.snapshots.find((item) => item.id === attribution.sourceSnapshotId);
+      const previous = store.snapshots.find((item) => item.id === attribution.prevSnapshotId);
+      return {
+        sourceSnapshotId: attribution.sourceSnapshotId,
+        prevSnapshotId: attribution.prevSnapshotId,
+        sourceGmv: source?.metrics.gmv?.toString() ?? null,
+        prevGmv: previous?.metrics.gmv?.toString() ?? null,
+      };
+    }),
+  );
+
+  const counts: QueueCount[] = [
+    { key: 'DATA_OVERDUE', count: 2, amount: null },
+    { key: 'NEEDS_REVIEW', count: 1, amount: null },
+    { key: 'OWNERSHIP_UNKNOWN', count: unknownSessions.length, amount: null },
+    { key: 'UNALLOCATED_GMV', count: shared.count, amount: shared.amount },
+    { key: 'EVENTS_PENDING_REVIEW', count: 5, amount: null },
+    { key: 'UNSTAFFED_SESSIONS', count: 2, amount: null },
+  ];
+
+  const stretches: UnknownStretch[] = unknownSessions.map((session) => {
+    const rows = store.currentFor(session.id);
+    return {
+      sessionId: session.id,
+      brandId: session.brandId,
+      brandName: 'Franklin',
+      platformAccountId: session.platformAccountId,
+      sessionDate: toPlatformDateString(session.startAt),
+      startAt: session.startAt,
+      endAt: session.endAt,
+      roomIds: rows.map((item) => item.roomId),
+      platformRoomIds: [ROOM],
+      gmv: rows.some((item) => item.metrics.gmv === null)
+        ? null
+        : rows.reduce((total, item) => total.plus(item.metrics.gmv!), new Decimal(0)),
+      orders: rows.some((item) => item.metrics.orders === null)
+        ? null
+        : rows.reduce((total, item) => total + item.metrics.orders!, 0),
+      nearbySessions: [
+        {
+          sessionId: 'demo-morning',
+          startAt: new Date('2026-09-11 10:00:00+07:00'),
+          endAt: new Date('2026-09-11 13:00:00+07:00'),
+          ownership: 'AGENCY',
+          status: 'DATA_COMPLETE',
+          hostNames: ['Khói'],
+        },
+      ],
+    };
+  });
+
+  return { counts, stretches };
 }
