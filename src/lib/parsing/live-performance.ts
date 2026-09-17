@@ -21,8 +21,7 @@ const FIRST_DATA_ROW = 4;
  * Cumulative fields are the only ones a shift split may subtract between two
  * snapshots; everything else is recomputed from these (docs/05 §1.4).
  */
-export const CUMULATIVE_FIELDS = [
-  'gmv',
+export const COUNT_FIELDS = [
   'itemsSold',
   'orders',
   'skuOrders',
@@ -37,16 +36,16 @@ export const CUMULATIVE_FIELDS = [
   'likes',
 ] as const;
 
+export type CountField = (typeof COUNT_FIELDS)[number];
+
+export const CUMULATIVE_FIELDS = ['gmv', ...COUNT_FIELDS] as const;
+
 export type CumulativeField = (typeof CUMULATIVE_FIELDS)[number];
 
-type ColumnKind = 'roomId' | 'text' | 'timestamp' | 'duration' | 'money' | 'count' | 'percent' | 'number';
-
-interface ColumnSpec {
-  header: string;
-  field: string;
-  kind: ColumnKind;
-  cumulative?: CumulativeField;
-}
+type ColumnSpec =
+  | { header: string; field: string; kind: 'money'; cumulative?: 'gmv' }
+  | { header: string; field: string; kind: 'count'; cumulative?: CountField }
+  | { header: string; field: string; kind: 'roomId' | 'text' | 'timestamp' | 'duration' | 'percent' | 'number' };
 
 /** Column order and names as they appear in the real export (docs/03 §A.4). */
 export const LIVE_COLUMNS: ColumnSpec[] = [
@@ -87,21 +86,7 @@ export const LIVE_COLUMNS: ColumnSpec[] = [
   { header: 'Like rate', field: 'likeRate', kind: 'percent' },
 ];
 
-export interface CumulativeMetrics {
-  gmv: Decimal | null;
-  itemsSold: number | null;
-  orders: number | null;
-  skuOrders: number | null;
-  customers: number | null;
-  views: number | null;
-  impressions: number | null;
-  productImpressions: number | null;
-  productClicks: number | null;
-  newFollowers: number | null;
-  comments: number | null;
-  shares: number | null;
-  likes: number | null;
-}
+export type CumulativeMetrics = { gmv: Decimal | null } & { [K in CountField]: number | null };
 
 export interface LiveSnapshotRow {
   rowIndex: number;
@@ -162,7 +147,8 @@ export async function parseLivePerformanceWorkbook(source: Buffer | string): Pro
   if (typeof source === 'string') {
     await workbook.xlsx.readFile(source);
   } else {
-    await workbook.xlsx.load(source);
+    // exceljs's types predate the generic Buffer introduced in @types/node 22.
+    await workbook.xlsx.load(source as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   }
 
   const sheet = workbook.getWorksheet(LIVE_SHEET_NAME);
@@ -256,9 +242,7 @@ function buildSnapshotRow(rowIndex: number, rawValues: Record<string, string | n
       }
       case 'count': {
         const value = parseInteger(raw, column.header);
-        if (column.cumulative) {
-          (metrics as Record<string, unknown>)[column.cumulative] = value;
-        }
+        if (column.cumulative) metrics[column.cumulative] = value;
         break;
       }
       case 'percent':

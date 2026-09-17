@@ -67,7 +67,8 @@ export async function parseAdsDailyWorkbook(source: Buffer | string): Promise<Ad
   if (typeof source === 'string') {
     await workbook.xlsx.readFile(source);
   } else {
-    await workbook.xlsx.load(source);
+    // exceljs's types predate the generic Buffer introduced in @types/node 22.
+    await workbook.xlsx.load(source as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   }
 
   const sheet = workbook.getWorksheet(ADS_SHEET_NAME) ?? workbook.worksheets[0];
