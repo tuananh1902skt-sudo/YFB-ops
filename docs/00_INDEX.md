@@ -51,7 +51,8 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Live Console — log sự kiện trong ca (event log là input của attribution)
 - [x] Chi tiết ca (truy vết "con số này ở đâu ra")
 - [x] Lịch live, tạo ca, phân ca (có cảnh báo trùng giờ)
-- [ ] Đăng ký ca & duyệt đăng ký (shift_bookings)
+- [x] Đăng ký ca & duyệt đăng ký (shift_bookings)
+- [ ] Dashboard brand & tổng hợp
 - [ ] Dashboard
 
 Kiểm chứng nhanh, không đụng database thật:
@@ -63,7 +64,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 ```
 
 Xem thử giao diện: `/demo/upload`, `/demo/operations`, `/demo/live-console`,
-`/demo/session-detail`, `/demo/schedule`.
+`/demo/session-detail`, `/demo/schedule`, `/demo/bookings`.
 
 ## Phạm vi đã thống nhất là CHƯA làm
 

@@ -654,3 +654,14 @@ $$;
 3. Chưa có bảng `products`/`skus` — file export hiện tại **không có dữ liệu SKU**. Khi
    nào agency cần Product Intelligence thì phải tìm nguồn export riêng trước, rồi mới
    thiết kế bảng.
+
+---
+
+## Bổ sung: policy `shift_bookings_cancel_own`
+
+Người đăng ký tự rút tên được, nhưng chỉ khi đăng ký còn ở `REGISTERED` /
+`PENDING_APPROVAL` và chỉ được chuyển sang `CANCELLED`. Sau khi duyệt thì ca đã xếp
+người quanh họ nên đổi người là việc của Operation (`01_BUSINESS_RULES.md` mục 6b).
+
+Policy này cố ý **không** cho tự đổi sang `APPROVED` — kiểm chứng ở
+`scripts/verify-rls.sql`.

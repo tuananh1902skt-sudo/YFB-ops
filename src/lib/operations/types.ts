@@ -7,7 +7,8 @@ export type QueueKey =
   | 'OWNERSHIP_UNKNOWN'
   | 'UNALLOCATED_GMV'
   | 'EVENTS_PENDING_REVIEW'
-  | 'UNSTAFFED_SESSIONS';
+  | 'UNSTAFFED_SESSIONS'
+  | 'BOOKINGS_PENDING';
 
 export interface QueueItemDefinition {
   key: QueueKey;
@@ -57,7 +58,13 @@ export const QUEUE_DEFINITIONS: QueueItemDefinition[] = [
     key: 'UNSTAFFED_SESSIONS',
     label: 'Ca chưa có người',
     urgent: false,
-    href: '/operations/phan-ca',
+    href: '/schedule',
+  },
+  {
+    key: 'BOOKINGS_PENDING',
+    label: 'Đăng ký ca chờ duyệt',
+    urgent: false,
+    href: '/operations/bookings',
   },
 ];
 

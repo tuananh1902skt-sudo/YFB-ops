@@ -257,6 +257,27 @@ số cũ. Hệ quả:
 
 ---
 
+## 6b. Đăng ký ca và duyệt đăng ký
+
+Ca cần người thì Operation mở `shift_slots` theo từng vai trò. Host/trợ live tự đăng ký,
+Operation duyệt sau.
+
+| Bước | Ai làm | Quy tắc |
+|---|---|---|
+| Đăng ký | Host/trợ live | Không đăng ký hai lần cùng một chỗ; ca đủ người hoặc đã bắt đầu thì không nhận thêm |
+| Rút tên | Chính người đăng ký | **Chỉ khi chưa duyệt.** Duyệt rồi thì ca đã xếp người quanh họ → Operation đổi người |
+| Duyệt | Operation | **Đây mới là lúc người đó thật sự được gán vào ca.** Trùng giờ bị chặn, trừ khi có lý do ghi audit log |
+| Từ chối | Operation | Bắt buộc lý do + audit log |
+
+**Đã chốt — xung đột lịch xử lý ở đâu**: lúc *đăng ký* chỉ **cảnh báo** cho người đăng ký
+biết họ đang có ca trùng giờ; lúc *duyệt* mới **chặn**. Lý do: người đăng ký có thể biết
+điều lịch không biết (ca kia sắp đổi người), còn quyết định cuối cùng — và lý do chấp
+nhận trùng — thuộc về người duyệt. Một điểm thực thi, một điểm thông báo.
+
+Khi mọi `shift_slots` của ca đã đủ người, ca tự chuyển sang `CONFIRMED`.
+
+---
+
 ## 7. Vai trò & con người (Roles)
 
 - Một người có thể vừa là Host vừa là Trợ live, tuỳ theo ca (role gắn theo **assignment

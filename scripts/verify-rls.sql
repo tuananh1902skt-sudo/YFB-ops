@@ -96,6 +96,20 @@ insert into contracts (id, brand_id, start_date) values
 
 insert into audit_logs (entity_type, entity_id, action) values ('live_sessions', 'seed', 'SEEDED');
 
+insert into shift_slots (id, session_id, brand_id, role_needed, start_at, end_at)
+values
+  ('00000000-0000-0000-0000-000000000061', '00000000-0000-0000-0000-0000000000e1',
+   '00000000-0000-0000-0000-0000000000b1', 'ASSISTANT',
+   timestamptz '2026-09-09 10:00+07', timestamptz '2026-09-09 13:00+07'),
+  ('00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-0000000000e1',
+   '00000000-0000-0000-0000-0000000000b1', 'HOST',
+   timestamptz '2026-09-09 10:00+07', timestamptz '2026-09-09 13:00+07');
+
+insert into shift_bookings (slot_id, user_id, status) values
+  ('00000000-0000-0000-0000-000000000061', '00000000-0000-0000-0000-0000000000a3', 'REGISTERED'),
+  ('00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-0000000000a3', 'REGISTERED'),
+  ('00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-0000000000a4', 'REGISTERED');
+
 -- ------------------------------------------------- trợ live của brand Franklin
 
 set role authenticated;
@@ -196,6 +210,40 @@ begin
 
   perform expect((select count(*) from audit_logs) = 0, 'trợ live không đọc được audit log');
   perform expect((select count(*) from contracts) = 0, 'trợ live không đọc được hợp đồng');
+end $$;
+
+do $$
+declare
+  affected integer;
+begin
+  -- Rút tên khỏi ca mình đăng ký: được, khi chưa duyệt.
+  update shift_bookings set status = 'CANCELLED'
+   where slot_id = '00000000-0000-0000-0000-000000000061'
+     and user_id = '00000000-0000-0000-0000-0000000000a3';
+  get diagnostics affected = row_count;
+  perform expect(affected = 1, 'người đăng ký tự huỷ được khi chưa duyệt');
+
+  -- Nhưng không tự duyệt cho mình.
+  begin
+    update shift_bookings set status = 'APPROVED'
+     where slot_id = '00000000-0000-0000-0000-000000000062'
+       and user_id = '00000000-0000-0000-0000-0000000000a3';
+    get diagnostics affected = row_count;
+  exception when insufficient_privilege then
+    affected := 0;
+  end;
+  perform expect(affected = 0, 'người đăng ký không tự duyệt cho mình được');
+
+  -- Và không đụng vào đăng ký của người khác.
+  begin
+    update shift_bookings set status = 'CANCELLED'
+     where slot_id = '00000000-0000-0000-0000-000000000062'
+       and user_id = '00000000-0000-0000-0000-0000000000a4';
+    get diagnostics affected = row_count;
+  exception when insufficient_privilege then
+    affected := 0;
+  end;
+  perform expect(affected = 0, 'không huỷ được đăng ký của người khác');
 end $$;
 
 -- ------------------------------- host tự do: không có role, chỉ được phân ca

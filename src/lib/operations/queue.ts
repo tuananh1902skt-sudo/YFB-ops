@@ -34,7 +34,7 @@ export async function loadQueueCounts(
   const graceMinutes = await readGraceMinutes(supabase);
   const overdueBefore = new Date(now.getTime() - graceMinutes * 60_000).toISOString();
 
-  const [overdue, needsReview, unknownOwnership, pendingEvents, unallocated, unstaffed] =
+  const [overdue, needsReview, unknownOwnership, pendingEvents, unallocated, unstaffed, pendingBookings] =
     await Promise.all([
       supabase
         .from('live_sessions')
@@ -62,6 +62,10 @@ export async function loadQueueCounts(
         .eq('is_current', true)
         .eq('method', 'SHARED_UNALLOCATED'),
       countUnstaffed(supabase, now),
+      supabase
+        .from('shift_bookings')
+        .select('slot_id', { count: 'exact', head: true })
+        .in('status', ['REGISTERED', 'PENDING_APPROVAL']),
     ]);
 
   fail('đếm ca quá hạn nộp', overdue.error);
@@ -69,6 +73,7 @@ export async function loadQueueCounts(
   fail('đếm đoạn chưa rõ ownership', unknownOwnership.error);
   fail('đếm sự kiện chờ hậu kiểm', pendingEvents.error);
   fail('đọc đoạn chưa quy kết', unallocated.error);
+  fail('đếm đăng ký chờ duyệt', pendingBookings.error);
 
   const shared = sumUnallocated(
     ((unallocated.data ?? []) as unknown as RawUnallocated[]).map(toUnallocatedRow),
@@ -81,6 +86,7 @@ export async function loadQueueCounts(
     { key: 'UNALLOCATED_GMV', count: shared.count, amount: shared.amount },
     { key: 'EVENTS_PENDING_REVIEW', count: pendingEvents.count ?? 0, amount: null },
     { key: 'UNSTAFFED_SESSIONS', count: unstaffed, amount: null },
+    { key: 'BOOKINGS_PENDING', count: pendingBookings.count ?? 0, amount: null },
   ];
 }
 
