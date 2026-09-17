@@ -7,6 +7,7 @@ import { buildUploadPreview, type UploadPreview } from './upload-preview';
 import { sumUnallocated } from '../operations/unallocated';
 import { toPlatformDateString } from '../parsing/primitives';
 import type { QueueCount, UnknownStretch } from '../operations/types';
+import type { DetailAttribution, DetailSnapshot, SessionDetail } from '../sessions/detail-types';
 
 /**
  * Runs the real engine over made-up shifts so the upload screen can be reviewed
@@ -222,4 +223,113 @@ export async function buildOperationsDemo() {
   });
 
   return { counts, stretches };
+}
+
+/**
+ * A handed-over shift, seen from the detail screen. The split, the arithmetic
+ * and the superseded row all come from the engine; only the names are invented.
+ */
+export async function buildSessionDetailDemo(): Promise<SessionDetail> {
+  const store = new MemoryRepository('detail:');
+  shifts(store);
+
+  // First the morning shift's own upload, then the afternoon one — which is
+  // what turns the afternoon figure into a subtraction.
+  await importLivePerformance(store, context('7'.repeat(64)), parsed([MORNING]));
+  await importLivePerformance(store, context('8'.repeat(64)), parsed([MORNING, AFTERNOON]));
+
+  const sessionId = 'demo-afternoon';
+  const snapshotOf = (id: string | null) => store.snapshots.find((item) => item.id === id) ?? null;
+  const importFileFor = (snapshotId: string | null) => {
+    const snapshot = snapshotOf(snapshotId);
+    if (!snapshot) return null;
+    const rawRow = store.rawRows.find((row) => row.id === store.snapshots.indexOf(snapshot).toString());
+    const file = store.imports.find((item) => item.id === rawRow?.importId);
+    return file?.context.fileName ?? 'Creator-Live-Performance.xlsx';
+  };
+
+  const toSnapshot = (id: string | null): DetailSnapshot | null => {
+    const snapshot = snapshotOf(id);
+    if (!snapshot) return null;
+    return {
+      snapshotId: snapshot.id,
+      endAt: snapshot.snapshotEndAt.toISOString(),
+      gmv: snapshot.metrics.gmv?.toString() ?? null,
+      orders: snapshot.metrics.orders,
+      importId: 'demo-import',
+      fileName: importFileFor(id) ?? 'Creator-Live-Performance.xlsx',
+    };
+  };
+
+  const attributions: DetailAttribution[] = store.attributions
+    .filter((row) => row.sessionId === sessionId)
+    .map((row, index) => ({
+      id: `attr-${index}`,
+      method: row.method,
+      confidence: row.confidence,
+      platformRoomId: ROOM,
+      segmentStartAt: row.segmentStartAt?.toISOString() ?? null,
+      segmentEndAt: row.segmentEndAt?.toISOString() ?? null,
+      durationMinutes: row.durationMinutes,
+      gmv: row.metrics.gmv?.toString() ?? null,
+      orders: row.metrics.orders,
+      itemsSold: row.metrics.itemsSold,
+      customers: row.metrics.customers,
+      views: row.metrics.views,
+      productImpressions: row.metrics.productImpressions,
+      productClicks: row.metrics.productClicks,
+      newFollowers: row.metrics.newFollowers,
+      sourceSnapshot: toSnapshot(row.sourceSnapshotId),
+      previousSnapshot: toSnapshot(row.prevSnapshotId),
+      computedReason: row.computedReason,
+      overrideReason: null,
+      computedAt: new Date('2026-09-09T16:05:00+07:00').toISOString(),
+      isCurrent: row.isCurrent,
+    }));
+
+  return {
+    sessionId,
+    brandName: 'FRANKLIN',
+    sessionDate: '09/09/2026',
+    status: 'DATA_COMPLETE',
+    ownership: 'AGENCY',
+    confidence: 'HIGH',
+    plannedStartAt: '2026-09-09T13:00:00+07:00',
+    plannedEndAt: '2026-09-09T16:00:00+07:00',
+    actualStartAt: '2026-09-09T13:00:00+07:00',
+    actualEndAt: '2026-09-09T16:02:48+07:00',
+    targetGmv: '40000000',
+    staff: [
+      { name: 'Linh Ân', role: 'HOST', startedAt: null, endedAt: null },
+      { name: 'Minh', role: 'ASSISTANT', startedAt: null, endedAt: null },
+    ],
+    events: [
+      {
+        id: 'e1',
+        eventType: 'HANDOVER_AGENCY_TEAM',
+        occurredAt: '2026-09-09T13:00:00+07:00',
+        reason: null,
+        actorName: 'Minh',
+        reviewStatus: 'LOGGED',
+      },
+      {
+        id: 'e2',
+        eventType: 'SESSION_ENDED',
+        occurredAt: '2026-09-09T16:02:48+07:00',
+        reason: null,
+        actorName: 'Minh',
+        reviewStatus: 'LOGGED',
+      },
+    ],
+    attributions,
+    auditLogs: [
+      {
+        id: 'a1',
+        action: 'OWNERSHIP_CONFIRMED',
+        reason: 'Ca agency, bổ sung booking thiếu',
+        actorName: 'Operation',
+        createdAt: '2026-09-09T17:12:00+07:00',
+      },
+    ],
+  };
 }
