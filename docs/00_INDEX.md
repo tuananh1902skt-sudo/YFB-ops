@@ -43,11 +43,19 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] KPI dictionary
 - [x] UI/UX spec
 - [x] Test cases từ dữ liệu thật
-- [ ] Migration & khởi tạo project
-- [ ] Import engine
-- [ ] Attribution engine
+- [x] Migration & khởi tạo project
+- [x] Import engine (parser + chống trùng + lưu trữ)
+- [x] Attribution engine (tách ca, đã chạy đúng trên file thật)
+- [ ] Màn hình upload & đối soát cho trợ live
+- [ ] Hàng đợi Operation (ca UNKNOWN, ca cần rà soát)
 - [ ] Operations UI (planning, calendar, shift, session)
 - [ ] Dashboard
+
+Kiểm chứng nhanh trên một file thật, không đụng database nào:
+
+```
+npx tsx scripts/dry-run-import.ts <file.xlsx>
+```
 
 ## Phạm vi đã thống nhất là CHƯA làm
 

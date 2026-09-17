@@ -185,6 +185,21 @@ so với **actual**.
 | `segment_start_at` / `segment_end_at` | Mốc đầu–cuối của riêng đoạn này (mốc snapshot, không phải giờ kế hoạch) |
 | `duration_minutes` | Thời lượng của riêng đoạn này. **Không** lấy từ cột `Duration` của file — đó là thời lượng cả Room |
 | `confidence` | Xem 2.8 |
+| `computed_reason` | Vì sao dòng này ra như vậy — dùng để hiển thị cho Operation, không phải log kỹ thuật |
+| `is_current` | Chỉ dòng `true` được tính. Tính lại thì dòng cũ chuyển `false` và **vẫn nằm trong DB** để truy vết |
+
+Một ca có **một dòng cho mỗi Room** nó đã dùng (ca restart → nhiều dòng). Ràng buộc
+`session_attributions_one_per_room_idx` chặn việc tồn tại hai dòng hiện hành cho cùng
+một cặp (ca, Room).
+
+**Mã cảnh báo đoạn live** (ghi vào `computed_reason`, engine sinh ra khi tách ca):
+
+| Mã | Nghĩa | Hệ quả |
+|---|---|---|
+| `NEGATIVE_DELTA` | Số cộng dồn giảm so với snapshot trước | **Không ghi số** cho đoạn đó, ca chuyển `NEEDS_REVIEW` |
+| `DUPLICATE_SNAPSHOT_TIME` | Hai snapshot cùng Room trùng mốc `End Time` | `NEEDS_REVIEW` |
+| `SNAPSHOT_BEFORE_ROOM_START` | `End Time` sớm hơn `Start Time` của Room | `NEEDS_REVIEW` |
+| `CONTINUITY_GAP_EXCEEDED` | Khoảng cách giữa 2 snapshot vượt `room_continuity_max_gap_hours` | `NEEDS_REVIEW`, không tự coi là một ca liền mạch |
 
 **Chỉ các trường cộng dồn (CUM) mới được tính bằng phép trừ.** Các chỉ số dẫn xuất (AOV,
 CTR, CVR, GMV/giờ…) phải **tính lại** từ các trường đã tách — danh sách CUM vs DERIVED

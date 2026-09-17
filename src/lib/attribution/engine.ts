@@ -1,6 +1,8 @@
 import { Decimal } from 'decimal.js';
 import { COUNT_FIELDS, type CumulativeMetrics } from '../parsing/live-performance';
 import type {
+  AttributionDraft,
+  DataConfidence,
   RoomInput,
   RoomSegment,
   SegmentAssignment,
@@ -15,6 +17,21 @@ import type {
  */
 export const MIN_OVERLAP_MINUTES = 2;
 export const MIN_OVERLAP_RATIO = 0.1;
+/**
+ * A room the platform keeps open across a gap this long is not evidence the
+ * stream ran the whole time (docs/01 §6.6). Overridable per environment through
+ * the `room_continuity_max_gap_hours` system setting.
+ */
+export const MAX_CONTINUITY_GAP_MINUTES = 8 * 60;
+
+export interface SegmentOptions {
+  maxContinuityGapMinutes?: number;
+}
+
+export interface MatchOptions {
+  minOverlapMinutes?: number;
+  minOverlapRatio?: number;
+}
 
 const MS_PER_MINUTE = 60_000;
 
@@ -70,7 +87,8 @@ function subtractMetrics(
   return { metrics, negative };
 }
 
-export function computeRoomSegments(room: RoomInput): RoomSegment[] {
+export function computeRoomSegments(room: RoomInput, options: SegmentOptions = {}): RoomSegment[] {
+  const maxGapMinutes = options.maxContinuityGapMinutes ?? MAX_CONTINUITY_GAP_MINUTES;
   const ordered = [...room.snapshots].sort((a, b) => a.endAt.getTime() - b.endAt.getTime());
   const segments: RoomSegment[] = [];
 
@@ -84,6 +102,11 @@ export function computeRoomSegments(room: RoomInput): RoomSegment[] {
     }
     if (previous && previous.endAt.getTime() === snapshot.endAt.getTime()) {
       issues.push('DUPLICATE_SNAPSHOT_TIME');
+    }
+
+    const durationMinutes = Math.max(0, minutesBetween(startAt, snapshot.endAt));
+    if (durationMinutes > maxGapMinutes) {
+      issues.push('CONTINUITY_GAP_EXCEEDED');
     }
 
     let metrics: CumulativeMetrics;
@@ -105,7 +128,7 @@ export function computeRoomSegments(room: RoomInput): RoomSegment[] {
       prevSnapshotId: previous?.snapshotId ?? null,
       startAt,
       endAt: snapshot.endAt,
-      durationMinutes: Math.max(0, minutesBetween(startAt, snapshot.endAt)),
+      durationMinutes,
       method: previous ? 'SNAPSHOT_DELTA' : 'FULL_SNAPSHOT',
       metrics,
       issues,
@@ -124,9 +147,13 @@ function overlapMinutes(segment: RoomSegment, session: SessionWindow): number {
 export function assignSegments(
   segments: RoomSegment[],
   sessions: SessionWindow[],
+  options: MatchOptions = {},
 ): SegmentAssignment[] {
+  const minMinutes = options.minOverlapMinutes ?? MIN_OVERLAP_MINUTES;
+  const minRatio = options.minOverlapRatio ?? MIN_OVERLAP_RATIO;
+
   return segments.map((segment) => {
-    const threshold = Math.max(MIN_OVERLAP_MINUTES, segment.durationMinutes * MIN_OVERLAP_RATIO);
+    const threshold = Math.max(minMinutes, segment.durationMinutes * minRatio);
     const matches = sessions.filter((session) => overlapMinutes(segment, session) >= threshold);
 
     if (matches.length === 1) {
@@ -224,4 +251,105 @@ export function computeSessionResult(
     sharedWithSessionIds: [],
     issues,
   };
+}
+
+function groupByRoom(segments: RoomSegment[]): Map<string, RoomSegment[]> {
+  const grouped = new Map<string, RoomSegment[]>();
+  for (const segment of segments) {
+    const bucket = grouped.get(segment.roomId);
+    if (bucket) bucket.push(segment);
+    else grouped.set(segment.roomId, [segment]);
+  }
+  for (const bucket of grouped.values()) {
+    bucket.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  }
+  return grouped;
+}
+
+/**
+ * Turns the assignments into the rows the database stores — one per room the
+ * shift used. Kept separate from `computeSessionResult`, which answers "what
+ * did this shift produce" for reporting; this answers "what do we write down".
+ */
+export function computeSessionAttributions(
+  sessionId: string,
+  assignments: SegmentAssignment[],
+): AttributionDraft[] {
+  const owned = assignments
+    .filter(
+      (assignment): assignment is Extract<SegmentAssignment, { kind: 'ATTRIBUTED' }> =>
+        assignment.kind === 'ATTRIBUTED' && assignment.sessionId === sessionId,
+    )
+    .map((assignment) => assignment.segment);
+  const shared = assignments
+    .filter(
+      (assignment): assignment is Extract<SegmentAssignment, { kind: 'SHARED_UNALLOCATED' }> =>
+        assignment.kind === 'SHARED_UNALLOCATED' && assignment.sessionIds.includes(sessionId),
+    )
+    .map((assignment) => assignment.segment);
+
+  // One stretch covering several shifts makes this shift's total unknowable,
+  // including the stretches we could otherwise attribute: the boundary between
+  // them is exactly what is missing. Nothing is split, nothing is guessed.
+  if (shared.length > 0) {
+    const drafts: AttributionDraft[] = [];
+    for (const [roomId, segments] of groupByRoom([...owned, ...shared])) {
+      drafts.push({
+        sessionId,
+        roomId,
+        method: 'SHARED_UNALLOCATED',
+        sourceSnapshotId: segments[segments.length - 1].sourceSnapshotId,
+        prevSnapshotId: segments[0].prevSnapshotId,
+        segmentStartAt: segments[0].startAt,
+        segmentEndAt: segments[segments.length - 1].endAt,
+        durationMinutes: null,
+        metrics: emptyMetrics(),
+        confidence: 'LOW',
+        issues: segments.flatMap((segment) => segment.issues),
+        computedReason:
+          'Thiếu snapshot ở ranh giới bàn giao: đoạn này thuộc nhiều ca, chưa quy kết được cho ca nào',
+      });
+    }
+    return drafts;
+  }
+
+  // A drop in a running total means the snapshots are out of order or tagged to
+  // the wrong shift. No figure is written until Operation resolves it.
+  const usable = owned.filter((segment) => !segment.issues.includes('NEGATIVE_DELTA'));
+  const rejected = owned.filter((segment) => segment.issues.includes('NEGATIVE_DELTA'));
+  if (usable.length === 0) return [];
+
+  const byRoom = groupByRoom(usable);
+  const multiRoom = byRoom.size > 1;
+  const drafts: AttributionDraft[] = [];
+
+  for (const [roomId, segments] of byRoom) {
+    const issues = segments.flatMap((segment) => segment.issues);
+    const last = segments[segments.length - 1];
+
+    let confidence: DataConfidence;
+    if (issues.length > 0 || rejected.length > 0) confidence = 'NEEDS_REVIEW';
+    else if (multiRoom) confidence = 'MEDIUM';
+    else confidence = 'HIGH';
+
+    drafts.push({
+      sessionId,
+      roomId,
+      method: multiRoom || segments.length > 1 ? 'ROOM_SUM' : segments[0].method,
+      sourceSnapshotId: last.sourceSnapshotId,
+      prevSnapshotId: segments[0].prevSnapshotId,
+      segmentStartAt: segments[0].startAt,
+      segmentEndAt: last.endAt,
+      durationMinutes: segments.reduce((sum, segment) => sum + segment.durationMinutes, 0),
+      metrics: sumMetrics(segments),
+      confidence,
+      issues,
+      computedReason:
+        rejected.length > 0
+          ? 'Có đoạn bị loại vì số cộng dồn giảm so với snapshot trước'
+          : null,
+    });
+  }
+
+  return drafts;
 }

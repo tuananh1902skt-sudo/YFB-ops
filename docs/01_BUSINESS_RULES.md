@@ -206,6 +206,31 @@ Khi 1 snapshot mới được upload cho 1 Room đã có snapshot trước:
   vượt 8 tiếng, hệ thống không tự động nối mà đưa vào `NEEDS_REVIEW` để Operation quyết
   định. Ngưỡng này để ở dạng cấu hình (system setting), không hard-code.
 
+### 6.7. Đoạn live không khớp ca nào đã book
+
+Khi engine tách ra một đoạn Room mà không ca nào đã book phủ được, hệ thống **tạo một ca
+mới với `ownership = UNKNOWN`**, mốc thời gian lấy đúng bằng đoạn đó, và đưa vào hàng đợi
+Operation. Lý do làm vậy thay vì để đoạn đó trôi nổi:
+
+- Doanh thu trong đoạn đó **có thật** và phải nằm ở đâu đó để đối chiếu với báo cáo toàn
+  shop; bỏ qua là tự làm lệch số.
+- Gắn vào một ca agency gần đó là **đoán** — đúng thứ mục 3 cấm.
+- Khi Operation xác nhận `BRAND_INHOUSE` hoặc bổ sung booking còn thiếu, ca đó trở thành
+  ca bình thường; lần import sau khớp thẳng vào nó, **không** tạo thêm ca UNKNOWN mới.
+
+Chừng nào còn `UNKNOWN`, đoạn đó **không vào bất kỳ KPI nào của agency** (mục 3).
+
+### 6.8. Tính lại, không cộng dồn
+
+Kết quả ca luôn được **tính lại từ toàn bộ snapshot đang có**, không phải cộng thêm vào
+số cũ. Hệ quả:
+
+- Import một file bulk muộn, Operation sửa gắn nhãn, hay trợ live bổ sung snapshot còn
+  thiếu — cả ba đều ra cùng một kết quả cuối, không phụ thuộc thứ tự upload.
+- Dòng attribution cũ chuyển `is_current = false` chứ không bị xoá.
+- Upload trùng (cùng Room + cùng `End Time`) bị bỏ qua ở tầng ghi snapshot, nên không có
+  đường nào để một lần upload lại làm số bị nhân đôi.
+
 ---
 
 ## 7. Vai trò & con người (Roles)

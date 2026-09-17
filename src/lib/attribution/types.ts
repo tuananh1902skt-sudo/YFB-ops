@@ -14,7 +14,9 @@ export type SessionOwnership = 'AGENCY' | 'BRAND_INHOUSE' | 'UNKNOWN';
 export type SegmentIssue =
   | 'NEGATIVE_DELTA'
   | 'DUPLICATE_SNAPSHOT_TIME'
-  | 'SNAPSHOT_BEFORE_ROOM_START';
+  | 'SNAPSHOT_BEFORE_ROOM_START'
+  /** Same room, but so long since the previous snapshot that continuity is a guess. */
+  | 'CONTINUITY_GAP_EXCEEDED';
 
 export interface RoomSnapshotInput {
   snapshotId: string;
@@ -66,4 +68,24 @@ export interface SessionResult {
   roomIds: string[];
   sharedWithSessionIds: string[];
   issues: SegmentIssue[];
+}
+
+/**
+ * One row of `session_attributions`: everything credited to a shift from a
+ * single room. A shift that restarted has one of these per room; the schema
+ * allows only one current row per (session, room).
+ */
+export interface AttributionDraft {
+  sessionId: string;
+  roomId: string;
+  method: AttributionMethod;
+  sourceSnapshotId: string | null;
+  prevSnapshotId: string | null;
+  segmentStartAt: Date | null;
+  segmentEndAt: Date | null;
+  durationMinutes: number | null;
+  metrics: CumulativeMetrics;
+  confidence: DataConfidence;
+  issues: SegmentIssue[];
+  computedReason: string | null;
 }
