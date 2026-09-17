@@ -14,6 +14,7 @@ nhập dữ liệu nền tảng → tách kết quả từng ca → KPI → báo
 | `05_KPI_DICTIONARY.md` | Công thức chính xác mọi chỉ số, chỉ số nào cấm tính ở cấp nào | Khi làm dashboard/báo cáo |
 | `06_UI_UX_SPEC.md` | Danh sách màn hình, luồng chính, quy ước hiển thị số | Khi làm giao diện |
 | `07_TEST_CASES.md` | Bộ kiểm thử dựng từ dữ liệu thật + điều kiện hoàn thành | Khi viết engine và test |
+| `08_ROADMAP.md` | Timeline, mốc bàn giao và tiêu chí nghiệm thu tới go-live | Khi lập kế hoạch hoặc báo cáo tiến độ |
 
 ---
 
