@@ -133,7 +133,20 @@ create table platform_accounts (
   constraint refund_rate_range check (estimated_refund_rate >= 0 and estimated_refund_rate < 1)
 );
 create index on platform_accounts (brand_id);
+
+-- Ngưỡng cấu hình được, không hard-code trong code (CLAUDE.md rule 12)
+create table system_settings (
+  key         text primary key,
+  value       jsonb not null,
+  description text,
+  updated_by  uuid references users(id),
+  updated_at  timestamptz not null default now()
+);
 ```
+
+Giá trị seed sẵn: `data_submission_grace_minutes` = 30,
+`room_continuity_max_gap_hours` = 8, `segment_match_min_overlap_minutes` = 2,
+`segment_match_min_overlap_ratio` = 0.1.
 
 ---
 
@@ -401,6 +414,12 @@ create table session_attributions (
   source_snapshot_id  uuid references room_snapshots(id),   -- snapshot chốt ca
   prev_snapshot_id    uuid references room_snapshots(id),   -- snapshot ca liền trước
 
+  -- Mốc và thời lượng của riêng đoạn này. KHÔNG lấy cột Duration của file
+  -- (đó là thời lượng cả Room — xem 05_KPI_DICTIONARY.md mục 2.1)
+  segment_start_at    timestamptz,
+  segment_end_at      timestamptz,
+  duration_minutes    numeric(10,2),
+
   gmv                 numeric(18,2),
   items_sold          integer,
   orders              integer,
@@ -425,7 +444,12 @@ create table session_attributions (
   constraint manual_needs_reason check (
     method <> 'MANUAL' or (override_reason is not null and length(btrim(override_reason)) > 0)
   ),
-  constraint no_negative_gmv check (gmv is null or gmv >= 0)
+  constraint no_negative_gmv check (gmv is null or gmv >= 0),
+  constraint no_negative_orders check (orders is null or orders >= 0),
+  -- Đoạn chưa quy kết được thì KHÔNG mang số — chặn việc chia đôi ở tầng DB
+  constraint shared_has_no_figures check (
+    method <> 'SHARED_UNALLOCATED' or (gmv is null and orders is null)
+  )
 );
 create index on session_attributions (session_id) where is_current;
 create index on session_attributions (room_id);
@@ -455,8 +479,16 @@ select
   sum(a.items_sold)   as items_sold,
   sum(a.views)        as views,
   sum(a.product_clicks) as product_clicks,
-  extract(epoch from (s.actual_end_at - s.actual_start_at))/3600.0 as live_hours,
-  min(a.confidence::text)::data_confidence as confidence   -- lấy mức thấp nhất
+  -- Giờ live = tổng thời lượng các đoạn thuộc ca, KHÔNG lấy actual_start/end
+  -- (OT, off sớm, restart làm hai thứ này lệch nhau)
+  sum(a.duration_minutes) as live_minutes,
+  bool_or(a.method = 'SHARED_UNALLOCATED') as has_unallocated,
+  -- Lấy mức tin cậy THẤP NHẤT. Không dùng min() trên chuỗi: thứ tự chữ cái
+  -- cho ra 'HIGH' đầu tiên, tức là ngược hẳn ý nghĩa cần có.
+  (array['HIGH','MEDIUM','LOW','NEEDS_REVIEW'])[
+    max(case a.confidence
+          when 'HIGH' then 1 when 'MEDIUM' then 2 when 'LOW' then 3 else 4 end)
+  ]::data_confidence as confidence
 from live_sessions s
 join session_attributions a on a.session_id = s.id and a.is_current
 group by s.id;
