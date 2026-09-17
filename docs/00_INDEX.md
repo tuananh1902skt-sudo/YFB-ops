@@ -49,8 +49,9 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Màn hình upload & đối soát cho trợ live
 - [x] Hàng đợi Operation + xác nhận ownership
 - [x] Live Console — log sự kiện trong ca (event log là input của attribution)
-- [ ] Lịch live, tạo/sửa ca, phân ca
-- [ ] Chi tiết ca (truy vết "con số này ở đâu ra")
+- [x] Chi tiết ca (truy vết "con số này ở đâu ra")
+- [x] Lịch live, tạo ca, phân ca (có cảnh báo trùng giờ)
+- [ ] Đăng ký ca & duyệt đăng ký (shift_bookings)
 - [ ] Dashboard
 
 Kiểm chứng nhanh, không đụng database thật:
@@ -61,7 +62,8 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 ./scripts/verify-rls.sh                         # phân quyền theo từng vai trò
 ```
 
-Xem thử giao diện: `/demo/upload`, `/demo/operations`, `/demo/live-console`.
+Xem thử giao diện: `/demo/upload`, `/demo/operations`, `/demo/live-console`,
+`/demo/session-detail`, `/demo/schedule`.
 
 ## Phạm vi đã thống nhất là CHƯA làm
 
