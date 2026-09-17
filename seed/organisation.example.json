@@ -1,0 +1,50 @@
+{
+  "client": {
+    "name": "Tên công ty khách hàng",
+    "code": "CLIENT_CODE"
+  },
+  "brands": [
+    {
+      "name": "Tên brand hiển thị trên giao diện",
+      "code": "BRAND_CODE",
+      "platformAccounts": [
+        {
+          "accountName": "Tên tài khoản TikTok Shop",
+          "platform": "TIKTOK_SHOP",
+          "externalShopId": null,
+          "estimatedRefundRate": 0.05
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "email": "operation@congty.vn",
+      "fullName": "Họ tên đầy đủ",
+      "phone": null,
+      "roles": [{ "role": "OPERATION", "brand": "BRAND_CODE" }]
+    },
+    {
+      "email": "quanly@congty.vn",
+      "fullName": "Họ tên đầy đủ",
+      "phone": null,
+      "roles": [{ "role": "MANAGEMENT" }]
+    },
+    {
+      "email": "host1@congty.vn",
+      "fullName": "Họ tên đầy đủ",
+      "phone": null,
+      "roles": [{ "role": "HOST", "brand": "BRAND_CODE" }]
+    },
+    {
+      "email": "troLive1@congty.vn",
+      "fullName": "Họ tên đầy đủ",
+      "phone": null,
+      "roles": [{ "role": "ASSISTANT", "brand": "BRAND_CODE" }]
+    }
+  ],
+  "settings": {
+    "data_submission_grace_minutes": 30,
+    "room_continuity_max_gap_hours": 8
+  }
+}

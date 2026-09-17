@@ -37,3 +37,26 @@ create or replace function auth.uid()
 returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;
+
+-- Kho file. Supabase dựng sẵn schema này; bản rút gọn dưới đây chỉ giữ đủ cột để
+-- policy của bucket `imports` áp được và kiểm chứng được.
+create schema if not exists storage;
+
+create table if not exists storage.buckets (
+  id     text primary key,
+  name   text not null,
+  public boolean not null default false
+);
+
+create table if not exists storage.objects (
+  id        uuid primary key default gen_random_uuid(),
+  bucket_id text not null references storage.buckets (id),
+  name      text not null,
+  owner     uuid,
+  unique (bucket_id, name)
+);
+
+alter table storage.objects enable row level security;
+
+grant usage on schema storage to anon, authenticated, service_role;
+grant all on storage.buckets, storage.objects to anon, authenticated, service_role;

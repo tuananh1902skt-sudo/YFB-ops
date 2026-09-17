@@ -17,7 +17,7 @@ export async function createUserClient() {
         try {
           for (const { name, value, options } of list) cookieStore.set(name, value, options);
         } catch {
-          // Called from a Server Component: the session is refreshed by middleware.
+          // Called from a Server Component: the session is refreshed in src/proxy.ts.
         }
       },
     },

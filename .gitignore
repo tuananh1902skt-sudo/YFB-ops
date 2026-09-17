@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# khai báo tổ chức thật (chứa email nhân sự) — bản mẫu vẫn được commit
+/seed/*.json
+!/seed/organisation.example.json

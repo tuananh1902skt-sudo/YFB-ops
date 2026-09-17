@@ -257,6 +257,28 @@ hạn theo từng trợ live.
 **D1. Brand & nhân sự**, **D2. Cấu hình** (ngưỡng 30 phút, ngưỡng 8 tiếng, tỷ lệ hoàn ước
 tính, loại campaign), **D3. Mapping cột file import** (khi TikTok đổi tên cột).
 
+Ở MVP, D1 và D2 được khai bằng file cấu hình + `npm run seed` thay vì màn hình quản trị
+(`08_SETUP.md`). Lý do: tổ chức chỉ đổi vài lần một năm, còn một màn hình sửa brand và
+vai trò lại là màn hình dễ gây hậu quả nhất nếu bấm nhầm.
+
+### Nhóm E — Cửa vào
+
+**E1. Đăng nhập** (`/login`). Email + mật khẩu. Không có đăng ký tự do: ai vào được hệ
+thống là một quyết định vận hành, không phải ai biết URL cũng vào được.
+
+Thông báo lỗi tách làm ba loại vì ba loại này dẫn tới ba hành động khác nhau: sai thông
+tin đăng nhập (người dùng tự sửa), không kết nối được máy chủ (kiểm tra mạng), lỗi khác
+(báo Operation). Gộp chúng làm một sẽ khiến người dùng đi tìm mật khẩu trong khi lỗi nằm
+ở chỗ khác. Riêng trường hợp sai thông tin **không** nói rõ email có tồn tại hay không.
+
+**E2. Trang chủ** (`/`). Tên người đăng nhập, vai trò kèm brand, và danh sách màn hình
+người đó dùng được — suy từ vai trò, không phải danh sách cố định.
+
+Việc giấu link **không** phải là phân quyền; RLS mới là chốt chặn. Giấu link là để người
+dùng không bấm vào một màn hình rồi gặp trang trống và tưởng hệ thống hỏng. Người đã
+đăng nhập nhưng chưa được gán vai trò thấy đúng câu đó, kèm việc cần làm tiếp: nhờ
+Operation gán vai trò.
+
 ---
 
 ## 6. Luồng chính

@@ -310,4 +310,68 @@ begin
     'Data Analyst toàn cục đọc được ca của mọi brand');
 end $$;
 
+-- --------------------------------------------- kho file report (bucket imports)
+
+reset role;
+-- Hai file có sẵn, mỗi brand một file. Đường dẫn theo đúng quy ước của
+-- `storagePathFor`: <platform_account_id>/<sha256>.xlsx
+insert into storage.objects (bucket_id, name) values
+  ('imports', '00000000-0000-0000-0000-0000000000d1/aaaa.xlsx'),
+  ('imports', '00000000-0000-0000-0000-0000000000d2/bbbb.xlsx'),
+  ('imports', 'khong-phai-uuid/cccc.xlsx');
+
+set role authenticated;
+set "request.jwt.claim.sub" = '00000000-0000-0000-0000-0000000000a3';
+do $$
+declare
+  affected integer;
+begin
+  perform expect(
+    (select count(*) from storage.objects where bucket_id = 'imports') = 1,
+    'Trợ live chỉ thấy file report của brand mình');
+
+  begin
+    insert into storage.objects (bucket_id, name)
+    values ('imports', '00000000-0000-0000-0000-0000000000d1/dddd.xlsx');
+    affected := 1;
+  exception when insufficient_privilege then
+    affected := 0;
+  end;
+  perform expect(affected = 1, 'Trợ live upload được file cho brand mình');
+
+  begin
+    insert into storage.objects (bucket_id, name)
+    values ('imports', '00000000-0000-0000-0000-0000000000d2/eeee.xlsx');
+    affected := 1;
+  exception when insufficient_privilege then
+    affected := 0;
+  end;
+  perform expect(affected = 0, 'Trợ live không upload được file sang brand khác');
+
+  -- Cùng một file upload lại phải ghi đè được, vì tên file là hash của nội dung.
+  update storage.objects set owner = null
+    where name = '00000000-0000-0000-0000-0000000000d1/aaaa.xlsx';
+  get diagnostics affected = row_count;
+  perform expect(affected = 1, 'Trợ live upload đè được đúng file của brand mình');
+
+  delete from storage.objects where bucket_id = 'imports';
+  get diagnostics affected = row_count;
+  perform expect(affected = 0, 'Không ai xoá được file report đã upload');
+end $$;
+
+reset role;
+set role authenticated;
+set "request.jwt.claim.sub" = '00000000-0000-0000-0000-0000000000a1';
+do $$
+begin
+  -- Vai trò toàn hệ thống thấy mọi brand, nhưng một đường dẫn không suy ra được
+  -- brand thì không thuộc về ai, kể cả SUPER_ADMIN.
+  perform expect(
+    (select count(*) from storage.objects where name like 'khong-phai-uuid/%') = 0,
+    'File đặt sai đường dẫn không lọt qua vai trò toàn hệ thống');
+  perform expect(
+    (select count(*) from storage.objects where bucket_id = 'imports') = 3,
+    'SUPER_ADMIN thấy file report của mọi brand');
+end $$;
+
 reset role;

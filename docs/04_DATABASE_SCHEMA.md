@@ -665,3 +665,31 @@ người quanh họ nên đổi người là việc của Operation (`01_BUSINES
 
 Policy này cố ý **không** cho tự đổi sang `APPROVED` — kiểm chứng ở
 `scripts/verify-rls.sql`.
+
+---
+
+## Bổ sung: kho file `imports` (Supabase Storage)
+
+Bucket **private** tên `imports`, tạo bởi migration `20260917000009_import_storage.sql`
+chứ không tạo bằng tay trên giao diện Supabase — một bucket tạo tay sẽ không có policy
+đi kèm, và lỗi đó chỉ lộ ra khi người dùng thật bấm nộp file.
+
+Đường dẫn file: `<platform_account_id>/<sha256>.xlsx` (hàm `storagePathFor`). Tên file
+là hash nội dung nên cùng một file luôn rơi vào cùng một chỗ, upload lại là ghi đè
+chính nó.
+
+Brand sở hữu file suy ra từ thư mục đầu tiên qua hàm `import_object_brand(name)`. Hàm
+này trả `null` nếu đoạn đầu không phải UUID, và mọi policy đều kiểm `is not null`
+trước khi gọi `has_brand_access`:
+
+| Policy | Thao tác | Điều kiện |
+|---|---|---|
+| `imports_read` | select | brand của file suy ra được **và** người đọc có quyền trên brand đó |
+| `imports_insert` | insert | như trên |
+| `imports_update` | update | như trên (cần cho việc upload đè cùng một file) |
+| — | delete | **không có policy**: report đã nộp là bằng chứng (CLAUDE.md §2) |
+
+Chốt `is not null` là bắt buộc chứ không phải phòng xa: `has_brand_access` trả `true`
+cho vai trò toàn hệ thống với **mọi** tham số, kể cả `null`. Bỏ chốt này thì một file
+đặt sai đường dẫn sẽ lọt qua tay SUPER_ADMIN. `scripts/verify-rls.sql` có assertion
+chứng minh đúng điều đó — thử bỏ chốt ra thì assertion đổ.
