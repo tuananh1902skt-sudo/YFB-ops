@@ -19,6 +19,7 @@ interface StoredImport {
   context: ImportContext;
   status: string;
   errorSummary: unknown;
+  uploadedAt?: Date;
 }
 
 interface StoredAttribution extends AttributionDraft {
@@ -51,9 +52,48 @@ export class MemoryRepository implements IngestRepository {
 
   private sequence = 0;
 
+  /**
+   * A namespace keeps generated ids from colliding with ids seeded from another
+   * store — which would silently make one record look like another.
+   */
+  constructor(private readonly namespace = '') {}
+
   private nextId(prefix: string): string {
     this.sequence += 1;
-    return `${prefix}-${this.sequence}`;
+    return `${this.namespace}${prefix}-${this.sequence}`;
+  }
+
+  /**
+   * Loads a slice of real data so the pipeline can be run over it without
+   * writing anything back — see `preview.ts`.
+   */
+  seed(data: {
+    settings?: Record<string, unknown>;
+    rooms?: RoomRecord[];
+    snapshots?: SnapshotRecord[];
+    sessions?: SessionRecord[];
+    imports?: { platformAccountId: string; fileHash: string; fileName: string; uploadedAt: Date }[];
+  }): void {
+    if (data.settings) this.settings = data.settings;
+    this.rooms.push(...(data.rooms ?? []));
+    this.snapshots.push(...(data.snapshots ?? []));
+    this.sessions.push(...(data.sessions ?? []).map((session) => ({ ...session, discovered: false })));
+
+    for (const item of data.imports ?? []) {
+      this.imports.push({
+        id: this.nextId('seeded-import'),
+        context: {
+          platformAccountId: item.platformAccountId,
+          uploadedBy: 'unknown',
+          fileName: item.fileName,
+          fileHash: item.fileHash,
+          storagePath: '',
+        },
+        status: 'MATCHED',
+        errorSummary: null,
+        uploadedAt: item.uploadedAt,
+      });
+    }
   }
 
   addSession(session: Omit<SessionRecord, 'ownership'> & { ownership?: SessionRecord['ownership'] }): SessionRecord {
@@ -72,7 +112,7 @@ export class MemoryRepository implements IngestRepository {
         item.context.platformAccountId === platformAccountId && item.context.fileHash === fileHash,
     );
     return found
-      ? { id: found.id, fileName: found.context.fileName, uploadedAt: new Date(0) }
+      ? { id: found.id, fileName: found.context.fileName, uploadedAt: found.uploadedAt ?? new Date(0) }
       : null;
   }
 

@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
+/*
+ * Design system from docs/06 §3. Colour carries meaning here and nothing else,
+ * so every token below is named for the state it stands for, not for its hue.
+ * Dark mode is deliberately out of scope for the MVP (docs/06 §8).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+
+  /* Đang diễn ra / thông tin */
+  --live: #1d4ed8;
+  --live-surface: #eff6ff;
+  /* Hoàn tất / đạt target */
+  --done: #15803d;
+  --done-surface: #f0fdf4;
+  /* Cần chú ý: confidence thấp, ownership chưa xác định, chờ hậu kiểm */
+  --attention: #b45309;
+  --attention-surface: #fffbeb;
+  /* Cần xử lý ngay */
+  --blocking: #b91c1c;
+  --blocking-surface: #fef2f2;
+  /* Không thuộc agency */
+  --outside: #94a3b8;
+  --outside-surface: #f1f5f9;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-live: var(--live);
+  --color-live-surface: var(--live-surface);
+  --color-done: var(--done);
+  --color-done-surface: var(--done-surface);
+  --color-attention: var(--attention);
+  --color-attention-surface: var(--attention-surface);
+  --color-blocking: var(--blocking);
+  --color-blocking-surface: var(--blocking-surface);
+  --color-outside: var(--outside);
+  --color-outside-surface: var(--outside-surface);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Số liệu phải thẳng cột khi đọc lướt giữa ca. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

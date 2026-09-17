@@ -32,6 +32,10 @@ export interface RecomputeResult {
   discovered: DiscoveredSessionOutcome[];
   /** Stretches whose figures dropped out because a running total went backwards. */
   rejectedSegments: RoomSegment[];
+  /** What the calculation was made from, so a screen can show its working. */
+  rooms: RoomRecord[];
+  snapshots: SnapshotRecord[];
+  sessionWindows: SessionRecord[];
 }
 
 /** Room stretches nobody booked, merged while they run back to back. */
@@ -131,6 +135,7 @@ export async function recomputeWindow(
   // to be the brand's either: it becomes a shift marked UNKNOWN for Operation
   // to classify (docs/01 §3). Until they do, it is excluded from every KPI.
   const discovered: DiscoveredSessionOutcome[] = [];
+  const discoveredSessions: SessionRecord[] = [];
   const claimed = new Map<RoomSegment, string>();
 
   for (const run of mergeUnmatchedRuns(assignments)) {
@@ -144,6 +149,7 @@ export async function recomputeWindow(
       note: 'Hệ thống phát hiện từ dữ liệu nền tảng, chưa khớp ca nào đã book',
     });
     discovered.push({ sessionId: session.id, startAt, endAt });
+    discoveredSessions.push(session);
     for (const segment of run) claimed.set(segment, session.id);
   }
 
@@ -193,6 +199,9 @@ export async function recomputeWindow(
     sessions: outcomes,
     discovered,
     rejectedSegments: segments.filter((segment) => segment.issues.includes('NEGATIVE_DELTA')),
+    rooms,
+    snapshots,
+    sessionWindows: [...sessions, ...discoveredSessions],
   };
 }
 

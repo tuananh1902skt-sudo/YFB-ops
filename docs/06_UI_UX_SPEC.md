@@ -320,6 +320,20 @@ Không bao giờ hiện lỗi kỹ thuật thô (stack trace, mã lỗi Postgres
 
 ---
 
+## 8b. Ghi chú khi triển khai
+
+- **Kho file**: upload cần một bucket Supabase Storage tên `imports`. Đường dẫn file do
+  server tự sinh theo `{platform_account_id}/{sha256}.xlsx`, trình duyệt không được
+  quyết định — nếu không, người dùng có thể trỏ import sang file của brand khác.
+- **shadcn/ui**: môi trường build hiện tại chặn `ui.shadcn.com` nên chưa chạy được
+  `npx shadcn init`. Component cơ bản đang ở `src/components/ui/`, giữ đúng API của
+  shadcn để thay thế sau. Cần hành vi phức tạp (dialog, select) thì cài primitive Radix
+  từ npm.
+- **Xem thử thiết kế**: `/demo/upload` dựng 4 tình huống thường gặp bằng chính engine
+  tách ca, không phải số viết tay — dùng để duyệt giao diện trước khi có dữ liệu thật.
+
+---
+
 ## 9. Còn mở
 
 1. `[TBD]` Brand nào chạy pilot.
