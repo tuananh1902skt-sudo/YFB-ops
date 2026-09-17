@@ -52,7 +52,8 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Chi tiết ca (truy vết "con số này ở đâu ra")
 - [x] Lịch live, tạo ca, phân ca (có cảnh báo trùng giờ)
 - [x] Đăng ký ca & duyệt đăng ký (shift_bookings)
-- [ ] Dashboard brand & tổng hợp
+- [x] Dashboard brand (GMV/target, tách agency vs in-house, host, chất lượng dữ liệu)
+- [ ] Dashboard tổng hợp nhiều brand (Management)
 - [ ] Dashboard
 
 Kiểm chứng nhanh, không đụng database thật:
@@ -64,7 +65,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 ```
 
 Xem thử giao diện: `/demo/upload`, `/demo/operations`, `/demo/live-console`,
-`/demo/session-detail`, `/demo/schedule`, `/demo/bookings`.
+`/demo/session-detail`, `/demo/schedule`, `/demo/bookings`, `/demo/dashboard`.
 
 ## Phạm vi đã thống nhất là CHƯA làm
 

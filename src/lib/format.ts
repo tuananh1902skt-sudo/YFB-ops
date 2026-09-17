@@ -29,6 +29,16 @@ export function formatMoney(value: Decimal | number | string | null): string {
   return `${moneyFormatter.format(Math.round(amount))} ₫`;
 }
 
+/** One decimal, Vietnamese separator: `93,6%` (docs/06 §3.3). */
+export function formatPercent(value: number | null): string {
+  return value === null ? NOT_AVAILABLE : `${value.toFixed(1).replace('.', ',')}%`;
+}
+
+/** Ratios that are not percentages (items per order, orders per hour). */
+export function formatRatio(value: number | null, digits = 1): string {
+  return value === null ? NOT_AVAILABLE : value.toFixed(digits).replace('.', ',');
+}
+
 export function formatCount(value: number | null): string {
   return value === null ? NOT_AVAILABLE : moneyFormatter.format(value);
 }
@@ -56,4 +66,19 @@ export function formatDuration(minutes: number | null): string {
   const hours = Math.floor(whole / 60);
   const rest = whole % 60;
   return hours === 0 ? `${rest}m` : `${hours}h ${String(rest).padStart(2, '0')}m`;
+}
+
+/**
+ * Shortened money for axis ticks and chart labels (docs/06 §3.3). Full amounts
+ * stay in the tiles, the tooltip and the table view, so nothing is only ever
+ * seen rounded.
+ */
+export function formatMoneyCompact(value: number): string {
+  if (Math.abs(value) >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(1).replace('.', ',')} tỷ`;
+  }
+  if (Math.abs(value) >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1).replace('.', ',')}tr`;
+  }
+  return moneyFormatter.format(Math.round(value));
 }

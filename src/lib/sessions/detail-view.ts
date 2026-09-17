@@ -4,6 +4,8 @@ import {
   NOT_AVAILABLE,
   formatDuration,
   formatMoney,
+  formatPercent,
+  formatRatio,
   formatTime,
   formatTimeRange,
 } from '../format';
@@ -260,14 +262,6 @@ function totalsFrom(rows: DetailAttribution[]): MetricTotals {
   };
 }
 
-function percentDisplay(value: number | null): string {
-  return value === null ? NOT_AVAILABLE : `${value.toFixed(1)}%`;
-}
-
-function numberDisplay(value: number | null, digits = 1): string {
-  return value === null ? NOT_AVAILABLE : value.toFixed(digits);
-}
-
 /**
  * Every derived figure is recomputed from the split totals rather than taken
  * from the export or differenced between snapshots (CLAUDE.md §7), and all of
@@ -281,12 +275,12 @@ function buildKpis(detail: SessionDetail, totals: MetricTotals): KpiRow[] {
     { label: 'Đơn', value: totals.orders === null ? NOT_AVAILABLE : String(totals.orders), caveat: null },
     { label: 'AOV', value: formatMoney(aov(totals)), caveat: null },
     { label: 'GMV / giờ', value: formatMoney(gmvPerHour(totals)), caveat: null },
-    { label: 'Đơn / giờ', value: numberDisplay(ordersPerHour(totals)), caveat: null },
-    { label: 'Sản phẩm / đơn', value: numberDisplay(itemsPerOrder(totals), 2), caveat: null },
-    { label: 'CTR sản phẩm', value: percentDisplay(productCtr(totals)), caveat: null },
+    { label: 'Đơn / giờ', value: formatRatio(ordersPerHour(totals)), caveat: null },
+    { label: 'Sản phẩm / đơn', value: formatRatio(itemsPerOrder(totals), 2), caveat: null },
+    { label: 'CTR sản phẩm', value: formatPercent(productCtr(totals)), caveat: null },
     {
       label: 'CVR (trên click)',
-      value: percentDisplay(conversionRateOnClicks(totals)),
+      value: formatPercent(conversionRateOnClicks(totals)),
       caveat: 'Mẫu số là lượt click sản phẩm',
     },
     { label: 'GMV / view', value: formatMoney(gmvPerView(totals)), caveat: null },
@@ -299,7 +293,7 @@ function buildKpis(detail: SessionDetail, totals: MetricTotals): KpiRow[] {
     },
     {
       label: 'Đạt target',
-      value: percentDisplay(targetAchievement(totals.gmv, target)),
+      value: formatPercent(targetAchievement(totals.gmv, target)),
       caveat:
         target === null
           ? 'Ca này chưa đặt target — không quy ra 0%'

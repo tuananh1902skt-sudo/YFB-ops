@@ -320,6 +320,30 @@ Không bao giờ hiện lỗi kỹ thuật thô (stack trace, mã lỗi Postgres
 
 ---
 
+## 3.5. Màu biểu đồ và giới hạn đã đo
+
+Bảng màu biểu đồ đã chạy qua validator (kiểm lightness, chroma, tách biệt dưới mù màu,
+tương phản nền):
+
+| Dùng cho | Màu | Kết quả đo trên nền trắng |
+|---|---|---|
+| Phần agency vận hành | `#1d4ed8` | Đạt toàn bộ |
+| Phần brand tự live | `#94a3b8` | Xám có chủ đích (dạng *emphasis*): agency là chủ thể, in-house là bối cảnh. Tách biệt với màu agency ΔE 28,8 (thường) / 25,1 (mù màu) |
+
+Xám chỉ đạt tương phản 2,56:1 nên **bắt buộc** kèm nhãn trực tiếp và nút "Xem dạng bảng" —
+không được để người đọc chỉ dựa vào màu.
+
+**Phát hiện cần ghi lại**: bộ màu trạng thái (`#15803d` / `#b45309` / `#b91c1c`) **không**
+tách biệt được bằng màu: vàng và đỏ chỉ cách nhau ΔE 9,1 ở mắt thường và 4,9 dưới mù màu
+deuteranopia. Không sửa được bằng cách đổi sắc độ: cả ba phải đủ đậm để đọc như **chữ**
+trên nền trắng, mà dải đậm đó ép chúng lại gần nhau.
+
+Kết luận: chữ đi kèm màu trạng thái **không phải để trang trí, nó là kênh truyền đạt
+chính**. Mọi badge và mục chất lượng dữ liệu phải có icon + chữ; không bao giờ chỉ có
+chấm màu. Đây chính là lý do quy tắc ở mục 3.2 tồn tại — giờ đã có số đo chứng minh.
+
+---
+
 ## 8b. Ghi chú khi triển khai
 
 - **Kho file**: upload cần một bucket Supabase Storage tên `imports`. Đường dẫn file do

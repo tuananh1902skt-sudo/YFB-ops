@@ -87,7 +87,7 @@ describe('màn chi tiết ca — truy vết con số', () => {
     // whole room.
     expect(byLabel.get('AOV')).toBe('904.337 ₫');
     // 1200 / 9000 = 13,3%
-    expect(byLabel.get('CTR sản phẩm')).toBe('13.3%');
+    expect(byLabel.get('CTR sản phẩm')).toBe('13,3%');
   });
 
   it('E6: thời lượng lấy từ mốc snapshot, không lấy cột Duration của file', async () => {

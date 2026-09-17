@@ -27,6 +27,18 @@
   /* Không thuộc agency */
   --outside: #94a3b8;
   --outside-surface: #f1f5f9;
+
+  /*
+   * Màu biểu đồ. Phần agency là chủ thể nên dùng màu nhấn; phần brand tự live
+   * là bối cảnh nên dùng xám — đây là dạng "emphasis", không phải hai series
+   * ngang hàng. Cặp này đã kiểm bằng validator: ΔE thường 28,8 / CVD 25,1 trên
+   * nền trắng. Xám có tương phản 2,56:1 nên bắt buộc có nhãn trực tiếp và bảng
+   * số kèm theo.
+   */
+  --viz-agency: #1d4ed8;
+  --viz-inhouse: #94a3b8;
+  --viz-grid: #e2e8f0;
+  --viz-axis: #94a3b8;
 }
 
 @theme inline {
@@ -45,6 +57,10 @@
   --color-blocking-surface: var(--blocking-surface);
   --color-outside: var(--outside);
   --color-outside-surface: var(--outside-surface);
+  --color-viz-agency: var(--viz-agency);
+  --color-viz-inhouse: var(--viz-inhouse);
+  --color-viz-grid: var(--viz-grid);
+  --color-viz-axis: var(--viz-axis);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 

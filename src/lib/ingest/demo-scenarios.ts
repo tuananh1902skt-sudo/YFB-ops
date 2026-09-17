@@ -8,6 +8,7 @@ import { sumUnallocated } from '../operations/unallocated';
 import { toPlatformDateString } from '../parsing/primitives';
 import type { QueueCount, UnknownStretch } from '../operations/types';
 import type { DetailAttribution, DetailSnapshot, SessionDetail } from '../sessions/detail-types';
+import type { DashboardSessionRow } from '../analytics/brand-dashboard';
 
 /**
  * Runs the real engine over made-up shifts so the upload screen can be reviewed
@@ -332,4 +333,140 @@ export async function buildSessionDetailDemo(): Promise<SessionDetail> {
       },
     ],
   };
+}
+
+/**
+ * Two weeks of shifts run through the real engine, so the dashboard's figures
+ * are split the way production would split them — including a day whose
+ * handover report never arrived.
+ */
+export async function buildDashboardDemo(): Promise<{
+  rows: DashboardSessionRow[];
+  unallocatedGmv: Decimal;
+}> {
+  const store = new MemoryRepository('dash:');
+  const days = [
+    { day: '2026-09-08', morning: '18500000', evening: '24200000', target: '40000000' },
+    { day: '2026-09-09', morning: '30000000', evening: '47025508.90', target: '40000000' },
+    { day: '2026-09-10', morning: '12400000', evening: '31800000', target: '40000000' },
+    { day: '2026-09-11', morning: '9800000', evening: '16500000', target: '40000000' },
+    { day: '2026-09-12', morning: '21300000', evening: '52700000', target: '45000000' },
+    { day: '2026-09-13', morning: '15900000', evening: '28400000', target: '45000000' },
+  ];
+
+  const rows: DashboardSessionRow[] = [];
+  let snapshotIndex = 100;
+
+  for (const [index, entry] of days.entries()) {
+    const morningId = `${entry.day}-sang`;
+    const eveningId = `${entry.day}-chieu`;
+    const host = index % 2 === 0 ? 'Khói' : 'Linh Ân';
+
+    store.addSession({
+      id: morningId,
+      brandId: 'demo-brand',
+      platformAccountId: 'demo-account',
+      startAt: new Date(`${entry.day} 10:00:00+07:00`),
+      endAt: new Date(`${entry.day} 13:00:00+07:00`),
+    });
+    store.addSession({
+      id: eveningId,
+      brandId: 'demo-brand',
+      platformAccountId: 'demo-account',
+      startAt: new Date(`${entry.day} 13:00:00+07:00`),
+      endAt: new Date(`${entry.day} 16:00:00+07:00`),
+    });
+
+    const cumulative = new Decimal(entry.morning).plus(entry.evening).toString();
+    // On 11/09 the assistant never uploaded at the handover, so the day's
+    // figures cover both shifts and neither may claim them.
+    const missingBoundary = entry.day === '2026-09-11';
+    const uploads = missingBoundary
+      ? [row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, 70)]
+      : [
+          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 13:00:00`, entry.morning, 28),
+          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, 70),
+        ];
+
+    await importLivePerformance(
+      store,
+      context(`${index}`.repeat(64).slice(0, 64)),
+      parsed(uploads),
+    );
+
+    for (const [sessionId, targetGmv] of [
+      [morningId, entry.target],
+      [eveningId, entry.target],
+    ] as const) {
+      const attributions = store.currentFor(sessionId);
+      const hasUnallocated = attributions.some((item) => item.method === 'SHARED_UNALLOCATED');
+      const sum = (pick: (item: (typeof attributions)[number]) => number | null) =>
+        attributions.reduce<number | null>((total, item) => {
+          const value = pick(item);
+          if (total === null || value === null) return null;
+          return total + value;
+        }, 0);
+
+      rows.push({
+        sessionId,
+        sessionDate: entry.day,
+        ownership: 'AGENCY',
+        confidence: attributions[0]?.confidence ?? null,
+        status: attributions.length === 0 ? 'DATA_PENDING' : 'DATA_COMPLETE',
+        gmv: attributions.some((item) => item.metrics.gmv === null)
+          ? null
+          : attributions
+              .reduce((total, item) => total.plus(item.metrics.gmv!), new Decimal(0))
+              .toString(),
+        orders: sum((item) => item.metrics.orders),
+        itemsSold: sum((item) => item.metrics.itemsSold),
+        customers: sum((item) => item.metrics.customers),
+        views: sum((item) => item.metrics.views),
+        productImpressions: sum((item) => item.metrics.productImpressions),
+        productClicks: sum((item) => item.metrics.productClicks),
+        liveMinutes: sum((item) => item.durationMinutes),
+        targetGmv,
+        hasUnallocated,
+        hostNames: [host],
+      });
+    }
+  }
+
+  // The brand streamed on its own one evening, already confirmed by Operation.
+  rows.push({
+    sessionId: 'inhouse-1',
+    sessionDate: '2026-09-12',
+    ownership: 'BRAND_INHOUSE',
+    confidence: 'HIGH',
+    status: 'DATA_COMPLETE',
+    gmv: '8600000',
+    orders: 11,
+    itemsSold: 12,
+    customers: 11,
+    views: 4200,
+    productImpressions: 3900,
+    productClicks: 520,
+    liveMinutes: 120,
+    targetGmv: null,
+    hasUnallocated: false,
+    hostNames: [],
+  });
+
+  const shared = store.attributions.filter(
+    (item) => item.isCurrent && item.method === 'SHARED_UNALLOCATED',
+  );
+  const unallocated = sumUnallocated(
+    shared.map((item) => {
+      const source = store.snapshots.find((snapshot) => snapshot.id === item.sourceSnapshotId);
+      const previous = store.snapshots.find((snapshot) => snapshot.id === item.prevSnapshotId);
+      return {
+        sourceSnapshotId: item.sourceSnapshotId,
+        prevSnapshotId: item.prevSnapshotId,
+        sourceGmv: source?.metrics.gmv?.toString() ?? null,
+        prevGmv: previous?.metrics.gmv?.toString() ?? null,
+      };
+    }),
+  );
+
+  return { rows, unallocatedGmv: unallocated.amount };
 }
