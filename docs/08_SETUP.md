@@ -13,7 +13,11 @@ Cần có:
 
 - Tài khoản Supabase (bản miễn phí là đủ cho giai đoạn pilot)
 - Node 20.12 trở lên (`node -v`)
-- Supabase CLI (`npm i -g supabase`, hoặc `brew install supabase/tap/supabase`)
+- Supabase CLI. **Không cài bằng `npm i -g supabase`** — gói npm này cố tình chặn cài
+  toàn cục và sẽ báo lỗi. Dùng một trong hai:
+  - macOS/Linux có Homebrew: `brew install supabase/tap/supabase`
+  - không có Homebrew: bỏ qua bước cài, thay mọi lệnh `supabase ...` dưới đây bằng
+    `npx supabase@latest ...`
 - Danh sách nhân sự: email, họ tên, vai trò, brand phụ trách
 
 Chưa cần: tên miền, hosting. Chạy trên máy trước, deploy sau.
@@ -55,6 +59,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...                # mục "service_role" — bí m
 supabase link --project-ref <project-ref>   # project-ref nằm trong URL của dashboard
 supabase db push
 ```
+
+(Chưa cài CLI thì dùng `npx supabase@latest link --project-ref <ref>` và
+`npx supabase@latest db push`.)
 
 Repo đã có sẵn `supabase/config.toml` nên không cần chạy `supabase init`.
 
