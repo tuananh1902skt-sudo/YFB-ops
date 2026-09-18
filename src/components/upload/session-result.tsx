@@ -36,7 +36,7 @@ export function SessionResult({ session }: { session: SessionPreview }) {
             <div key={`${step.label}-${index}`} className="flex justify-between gap-4 text-sm">
               <dt className="text-muted">{step.label}</dt>
               <dd className="tabular text-foreground">
-                {step.operation === 'SUBTRACT' ? '− ' : ''}
+                {step.operation === 'SUBTRACT' ? '− ' : step.operation === 'ADD' ? '+ ' : ''}
                 {step.amount}
               </dd>
             </div>

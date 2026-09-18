@@ -192,4 +192,40 @@ describe('màn hình nộp dữ liệu — xem trước', () => {
     expect(result.notices[0].message).toContain('Attributed GMV');
     expect(result.canConfirm).toBe(false);
   });
+
+  it('ca bị restart hiện rõ là cộng hai đoạn, không để người đọc tự đoán', async () => {
+    // Đúng tình huống thật ngày 13/09: mất sóng rồi bật lại thành hai room.
+    const repo = new MemoryRepository();
+    repo.addSession({
+      id: 'ca-toi',
+      brandId: 'brand-1',
+      startAt: at('2026-09-13 19:00:00'),
+      endAt: at('2026-09-13 21:15:00'),
+    });
+
+    const result = await preview(repo, 'e'.repeat(64), [
+      {
+        roomId: '7684989222588238613',
+        start: '2026-09-13 19:03:00',
+        end: '2026-09-13 19:57:00',
+        duration: '0h54m',
+        gmv: '1,587,449.98₫',
+        orders: '3',
+      },
+      {
+        roomId: '7685004451451128597',
+        start: '2026-09-13 20:02:00',
+        end: '2026-09-13 21:08:00',
+        duration: '1h06m',
+        gmv: '79,349.99₫',
+        orders: '1',
+      },
+    ]);
+
+    const shift = result.sessions.find((item) => item.sessionId === 'ca-toi')!;
+
+    expect(shift.method).toBe('ROOM_SUM');
+    expect(shift.calculation.map((step) => step.operation)).toEqual(['BASE', 'ADD']);
+    expect(shift.calculation[1].label).toContain('Cộng');
+  });
 });

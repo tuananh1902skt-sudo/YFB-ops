@@ -131,6 +131,29 @@ function buildCalculation(
   return steps;
 }
 
+/**
+ * Phép tính của cả ca, khi ca trải trên nhiều đoạn phòng live (ca bị restart).
+ *
+ * Từ đoạn thứ hai trở đi phải hiện rõ là **cộng**. Liệt kê hai con số cạnh nhau
+ * mà không có dấu phép tính thì người đọc phải tự đoán — trên đúng màn hình mà
+ * mục đích là cho thấy phép tính, đó là chỗ bỏ sót tệ nhất.
+ */
+function buildSessionCalculation(
+  drafts: AttributionDraft[],
+  snapshots: Map<string, SnapshotRecord>,
+): CalculationStep[] {
+  return drafts.flatMap((draft, index) => {
+    const steps = buildCalculation(draft, snapshots);
+    if (index === 0 || steps.length === 0 || steps[0].operation !== 'BASE') return steps;
+
+    const [first, ...rest] = steps;
+    return [
+      { ...first, operation: 'ADD' as const, label: first.label.replace(/^Số/, 'Cộng số') },
+      ...rest,
+    ];
+  });
+}
+
 export function buildUploadPreview(report: LiveImportReport, fileName: string): UploadPreview {
   if (report.status === 'DUPLICATE_FILE') {
     return {
@@ -251,7 +274,7 @@ export function buildUploadPreview(report: LiveImportReport, fileName: string): 
           : formatMoney(gmv),
       ordersDisplay: nothingUsable || orders === null ? NOT_AVAILABLE : String(orders),
       durationDisplay: formatDuration(nothingUsable ? null : minutes),
-      calculation: drafts.flatMap((draft) => buildCalculation(draft, snapshots)),
+      calculation: buildSessionCalculation(drafts, snapshots),
       notices,
     };
   });
