@@ -56,7 +56,7 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Dashboard brand (GMV/target, tách agency vs in-house, host, chất lượng dữ liệu)
 - [x] Đăng nhập, trang chủ theo vai trò, kho file report có phân quyền
 - [x] Script khởi tạo tổ chức (`npm run seed`) + hướng dẫn cài đặt
-- [ ] Dashboard tổng hợp nhiều brand (Management)
+- [x] Dashboard tổng hợp nhiều brand (Management) — so sánh + danh sách việc cần xem
 
 Kiểm chứng nhanh, không đụng database thật:
 
@@ -68,7 +68,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 
 Xem thử giao diện (không cần Supabase): `/demo/upload`, `/demo/operations`,
 `/demo/live-console`, `/demo/session-detail`, `/demo/schedule`, `/demo/bookings`,
-`/demo/dashboard`.
+`/demo/dashboard`, `/demo/portfolio`.
 
 Chạy thật với dữ liệu thật: làm theo `08_SETUP.md`.
 

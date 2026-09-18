@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { DEFAULT_THRESHOLDS, type AnalyticsThresholds } from './settings';
 import type { DataConfidence, SessionOwnership } from '../attribution/types';
 import { NOT_AVAILABLE, formatDuration, formatMoney, formatPercent } from '../format';
 import {
@@ -114,7 +115,7 @@ export interface RowTotals {
  * that quietly omits shifts would be a lie of a different kind. The money
  * itself is reported beside the total, never folded into it.
  */
-function sumRows(rows: DashboardSessionRow[]): RowTotals {
+export function sumRows(rows: DashboardSessionRow[]): RowTotals {
   const totals = emptyTotals();
   const contributing = rows.filter((row) => !row.hasUnallocated && row.gmv !== null);
   if (contributing.length === 0) return { totals, excluded: rows.length };
@@ -150,7 +151,7 @@ function sumRows(rows: DashboardSessionRow[]): RowTotals {
   return { totals, excluded: rows.length - contributing.length };
 }
 
-function sumTargets(rows: DashboardSessionRow[]): Decimal | null {
+export function sumTargets(rows: DashboardSessionRow[]): Decimal | null {
   const targets = rows.map((row) => row.targetGmv).filter((value): value is string => value !== null);
   // No target set anywhere means no achievement to report — not nought percent.
   if (targets.length === 0) return null;
@@ -220,7 +221,11 @@ function buildHosts(rows: DashboardSessionRow[]): HostRow[] {
     .sort((a, b) => b.sessions - a.sessions);
 }
 
-function buildQuality(rows: DashboardSessionRow[], unallocatedGmv: Decimal | null): QualityRow[] {
+function buildQuality(
+  rows: DashboardSessionRow[],
+  unallocatedGmv: Decimal | null,
+  thresholds: AnalyticsThresholds,
+): QualityRow[] {
   const total = rows.length;
   const high = rows.filter((row) => row.confidence === 'HIGH').length;
   const pending = rows.filter((row) => row.status === 'DATA_PENDING').length;
@@ -231,7 +236,12 @@ function buildQuality(rows: DashboardSessionRow[], unallocatedGmv: Decimal | nul
     {
       label: 'Ca có dữ liệu tin cậy',
       value: total === 0 ? NOT_AVAILABLE : `${high}/${total}`,
-      status: highShare === null || highShare >= 80 ? 'good' : highShare >= 50 ? 'warning' : 'critical',
+      status:
+        highShare === null || highShare >= thresholds.confidenceGoodPercent
+          ? 'good'
+          : highShare >= thresholds.confidenceWarningPercent
+            ? 'warning'
+            : 'critical',
       note: highShare === null ? null : `${highShare.toFixed(0)}% số ca`,
     },
     {
@@ -264,6 +274,7 @@ export function buildBrandDashboard(
   rows: DashboardSessionRow[],
   periodLabel: string,
   unallocatedGmv: Decimal | null = null,
+  thresholds: AnalyticsThresholds = DEFAULT_THRESHOLDS,
 ): BrandDashboard {
   // Agency performance counts agency shifts only, in numerator and denominator
   // alike. In-house is reported beside it, never inside it (docs/01 §3).
@@ -317,6 +328,6 @@ export function buildBrandDashboard(
     inhouseShareLabel:
       inhouseShare === null ? null : `${inhouseShare.toFixed(0)}% GMV toàn shop kỳ này`,
     hosts: buildHosts(rows),
-    quality: buildQuality(rows, unallocatedGmv),
+    quality: buildQuality(rows, unallocatedGmv, thresholds),
   };
 }

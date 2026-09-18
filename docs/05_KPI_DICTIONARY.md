@@ -233,9 +233,36 @@ nhiêu tiền đang "không biết của ai" vì trợ live quên tải report �
 | Từ cấp | Lên cấp | Cách gộp |
 |---|---|---|
 | Ca | Ngày / Brand / Kỳ / Host / Campaign | Cộng các trường gốc → tính lại chỉ số dẫn xuất |
-| Ca `SHARED_UNALLOCATED` | Bất kỳ cấp nào | Vẫn cộng vào tổng brand/ngày (vì tiền có thật), nhưng **không** gán cho host nào |
+| Ca `SHARED_UNALLOCATED` | Bất kỳ cấp nào | Tiền có thật nên **luôn phải hiện**, nhưng hiện **cạnh** tổng chứ không **trong** tổng — xem 10.1 |
 | Ca `BRAND_INHOUSE` | — | Loại khỏi mọi KPI agency; chỉ hiện ở báo cáo "toàn shop" có ghi chú |
 | Ca `UNKNOWN` | — | Loại khỏi mọi KPI cho tới khi Operation xác nhận |
+
+### 10.1. Ca chưa quy kết được: hiện cạnh tổng, không cộng vào tổng
+
+Khi thiếu snapshot ở ranh giới bàn giao, engine không tạo ra được con số GMV cho từng ca
+— nó chỉ biết cả đoạn chung kiếm được bao nhiêu. Vì vậy có **hai** con số phải cùng xuất
+hiện, không bao giờ được gộp:
+
+| Con số | Ý nghĩa | Dùng để |
+|---|---|---|
+| **GMV đã quy kết** | Tổng của các ca engine tách được | So sánh, tính KPI dẫn xuất, đánh giá target |
+| **GMV chưa quy kết** | Tiền của các đoạn chung, không biết thuộc ca nào | Đo chất lượng dữ liệu; cộng với trên ra GMV toàn shop |
+
+Ba quy tắc bắt buộc:
+
+1. **Không cộng ca chưa quy kết vào tổng dưới dạng 0.** Nó sẽ kéo GMV/giờ và AOV xuống
+   một cách sai sự thật.
+2. **Không vì một ca chưa quy kết mà trả `N/A` cho cả kỳ.** Một ngày không tách được
+   không làm cả tháng thành không biết được.
+3. **Luôn nói rõ đã loại bao nhiêu ca** ngay cạnh con số lớn. Một tổng lặng lẽ bỏ sót ca
+   là một kiểu nói dối khác.
+
+Hệ quả cho mẫu số: tỷ lệ đạt target so GMV đã quy kết với target của **đúng những ca đã
+quy kết**, không phải target của toàn kỳ — nếu không tỷ lệ sẽ thấp một cách vô lý.
+
+Hệ quả khi so sánh nhiều brand: brand có nhiều tiền chưa quy kết sẽ bị **báo thiếu** nếu
+chỉ nhìn GMV đã quy kết. Mọi bảng so sánh giữa các brand phải hiện phần chưa quy kết của
+từng brand ngay trong bảng, không giấu xuống phần chú thích.
 
 ---
 

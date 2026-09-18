@@ -27,6 +27,9 @@ export const SETTING_KEYS = [
   'room_continuity_max_gap_hours',
   'segment_match_min_overlap_minutes',
   'segment_match_min_overlap_ratio',
+  'target_warning_percent',
+  'data_confidence_good_percent',
+  'data_confidence_warning_percent',
 ] as const;
 
 export type UserRoleCode = (typeof USER_ROLES)[number];

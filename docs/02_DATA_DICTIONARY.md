@@ -142,7 +142,7 @@ Lưu dạng bảng tham chiếu (không phải enum cứng) để agency tự th
 | `platform_account.external_shop_id` | Định danh shop trên nền tảng. Đã xác nhận: **1 brand = 1 tài khoản TikTok Shop** |
 | `platform_account.timezone` | Mặc định `Asia/Ho_Chi_Minh` (GMT+7) — múi giờ của mọi mốc thời gian trong file export |
 | `platform_account.estimated_refund_rate` | Tỷ lệ hoàn ước tính của account này, dùng tính NMV ước tính. Cấu hình riêng từng account |
-| `system_settings.key` / `value` | Các ngưỡng cấu hình được: `data_submission_grace_minutes` (30), `room_continuity_max_gap_hours` (8), `segment_match_min_overlap_minutes` (2), `segment_match_min_overlap_ratio` (0.1) |
+| `system_settings.key` / `value` | Các ngưỡng cấu hình được. Nhóm import: `data_submission_grace_minutes` (30), `room_continuity_max_gap_hours` (8), `segment_match_min_overlap_minutes` (2), `segment_match_min_overlap_ratio` (0.1). Nhóm dashboard: `target_warning_percent` (90), `data_confidence_good_percent` (80), `data_confidence_warning_percent` (50) |
 
 ### 3.2. Ca live (`live_sessions`)
 

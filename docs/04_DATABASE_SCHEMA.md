@@ -148,6 +148,11 @@ Giá trị seed sẵn: `data_submission_grace_minutes` = 30,
 `room_continuity_max_gap_hours` = 8, `segment_match_min_overlap_minutes` = 2,
 `segment_match_min_overlap_ratio` = 0.1.
 
+Migration `20260917000010_analytics_thresholds.sql` thêm nhóm ngưỡng của dashboard:
+`target_warning_percent` = 90, `data_confidence_good_percent` = 80,
+`data_confidence_warning_percent` = 50. Đây là quyết định kinh doanh chứ không phải hằng
+số kỹ thuật, nên nằm ở đây để Operation sửa được mà không cần deploy.
+
 ---
 
 ## Nhóm B — Campaign & Planning

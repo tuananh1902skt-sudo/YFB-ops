@@ -2,6 +2,7 @@ import { BrandDashboardView } from '@/components/dashboard/brand-dashboard';
 import { PageState } from '@/components/page-state';
 import { buildBrandDashboard } from '@/lib/analytics/brand-dashboard';
 import { loadDashboardRows } from '@/lib/analytics/load-dashboard';
+import { loadAnalyticsSettings } from '@/lib/analytics/load-portfolio';
 import { platformToday } from '@/lib/planning/schedule-view';
 import { createUserClient } from '@/lib/supabase/server';
 
@@ -36,7 +37,10 @@ export default async function DashboardPage() {
 
   const today = platformToday();
   const from = `${today.slice(0, 8)}01`;
-  const { rows, unallocatedGmv } = await loadDashboardRows(supabase, brand.id, from, today);
+  const [{ rows, unallocatedGmv }, thresholds] = await Promise.all([
+    loadDashboardRows(supabase, brand.id, from, today),
+    loadAnalyticsSettings(supabase),
+  ]);
 
   return (
     <BrandDashboardView
@@ -45,6 +49,7 @@ export default async function DashboardPage() {
         rows,
         `tháng ${today.slice(5, 7)}/${today.slice(0, 4)}`,
         unallocatedGmv.amount,
+        thresholds,
       )}
     />
   );

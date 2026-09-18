@@ -51,6 +51,12 @@ const LINKS: (NavLink & { roles: readonly UserRoleCode[] })[] = [
     roles: ['OPERATION', 'ACCOUNT', 'SUPER_ADMIN'],
   },
   {
+    href: '/dashboard/all',
+    label: 'Kết quả toàn bộ brand',
+    description: 'So sánh giữa các brand và danh sách việc cần xem.',
+    roles: ['MANAGEMENT', 'DATA_ANALYST', 'FINANCE', 'SUPER_ADMIN'],
+  },
+  {
     href: '/dashboard',
     label: 'Kết quả brand',
     description: 'GMV so target, agency và brand tự live tách riêng.',

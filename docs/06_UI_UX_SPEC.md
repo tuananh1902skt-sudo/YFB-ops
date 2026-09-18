@@ -244,7 +244,35 @@ nút xem file gốc · lịch sử chỉnh sửa. Đây là màn hình trả l�
 tách rõ phần agency và phần brand tự live; biểu đồ theo ngày; bảng theo campaign và theo
 host.
 
-**C2. Dashboard tổng** (Management) — tổng hợp nhiều brand.
+**C2. Dashboard tổng** (Management, `/dashboard/all`) — tổng hợp nhiều brand.
+
+Không phải bản phóng to của C1. Người mở màn hình này không hỏi "brand X bán được bao
+nhiêu" — họ hỏi **"chỗ nào đang cần tôi"**. Vì vậy phần **Cần xem** đứng trước bảng số,
+xếp theo mức nghiêm trọng chứ không theo tên brand, và mỗi dòng dẫn thẳng tới màn hình
+xử lý được việc đó.
+
+Gộp bằng cách cộng trường gốc của **mọi ca** rồi chia lại một lần — không lấy trung bình
+các tỷ lệ của từng brand (CLAUDE.md §8). Brand nhỏ không được cân bằng brand lớn.
+
+Biểu đồ so sánh nằm ngang (tên brand dài, số brand ít nên cột dọc sẽ phải xoay nhãn).
+Một đại lượng, một trục. Ba ký hiệu:
+
+| Ký hiệu | Nghĩa |
+|---|---|
+| Thanh đặc màu nhấn | GMV đã quy kết — con số dùng để so sánh |
+| Ô rỗng viền cam, vẽ **nối tiếp** thanh | GMV chưa quy kết được |
+| Vạch dọc trên cùng trục | Target |
+
+Phần chưa quy kết cố ý **không** gộp vào thanh: gộp thì brand có nhiều tiền treo sẽ
+trông như bán tốt hơn, trong khi thứ tự xếp hạng lại dựa trên phần đã quy kết. Vạch
+target có viền nền để vẫn đọc được ở chỗ nó đè lên thanh.
+
+Vị trí vạch so với đầu thanh nói ngay trạng thái: vạch nằm trong thanh là vượt target,
+nằm ngoài là còn thiếu. Đó là lý do target phải ở trên cùng trục chứ không phải một trục
+thứ hai.
+
+Một brand thì màn hình tự nói rằng nó chưa thêm được gì so với C1, thay vì vẽ một bảng
+một dòng.
 
 **C3. Hiệu suất host/trợ live** — bảng so sánh **luôn kèm bối cảnh** (brand, campaign,
 khung giờ). Không có bảng xếp hạng chỉ bằng một con số.

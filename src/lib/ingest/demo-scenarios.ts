@@ -340,19 +340,48 @@ export async function buildSessionDetailDemo(): Promise<SessionDetail> {
  * are split the way production would split them — including a day whose
  * handover report never arrived.
  */
-export async function buildDashboardDemo(): Promise<{
+export interface DemoDay {
+  day: string;
+  morning: string;
+  evening: string;
+  target: string | null;
+  /** Số đơn cộng dồn tới cuối ca sáng / cuối ngày. */
+  morningOrders?: number;
+  dayOrders?: number;
+}
+
+export interface DashboardDemoOptions {
+  /** Tránh đụng id giữa các brand khi dựng nhiều brand trong cùng một tiến trình. */
+  namespace?: string;
+  days?: DemoDay[];
+  /** Ngày thiếu report lúc bàn giao, nên cả ngày không quy kết về ca nào được. */
+  missingBoundaryOn?: string | null;
+  /** GMV brand tự live trong kỳ, null nghĩa là brand không tự live. */
+  inhouseGmv?: string | null;
+  hosts?: [string, string];
+}
+
+const DEFAULT_DEMO_DAYS: DemoDay[] = [
+  { day: '2026-09-08', morning: '18500000', evening: '24200000', target: '40000000' },
+  { day: '2026-09-09', morning: '30000000', evening: '47025508.90', target: '40000000' },
+  { day: '2026-09-10', morning: '12400000', evening: '31800000', target: '40000000' },
+  { day: '2026-09-11', morning: '9800000', evening: '16500000', target: '40000000' },
+  { day: '2026-09-12', morning: '21300000', evening: '52700000', target: '45000000' },
+  { day: '2026-09-13', morning: '15900000', evening: '28400000', target: '45000000' },
+];
+
+export async function buildDashboardDemo(options: DashboardDemoOptions = {}): Promise<{
   rows: DashboardSessionRow[];
   unallocatedGmv: Decimal;
 }> {
-  const store = new MemoryRepository('dash:');
-  const days = [
-    { day: '2026-09-08', morning: '18500000', evening: '24200000', target: '40000000' },
-    { day: '2026-09-09', morning: '30000000', evening: '47025508.90', target: '40000000' },
-    { day: '2026-09-10', morning: '12400000', evening: '31800000', target: '40000000' },
-    { day: '2026-09-11', morning: '9800000', evening: '16500000', target: '40000000' },
-    { day: '2026-09-12', morning: '21300000', evening: '52700000', target: '45000000' },
-    { day: '2026-09-13', morning: '15900000', evening: '28400000', target: '45000000' },
-  ];
+  const {
+    namespace = 'dash:',
+    days = DEFAULT_DEMO_DAYS,
+    missingBoundaryOn = '2026-09-11',
+    inhouseGmv = '8600000',
+    hosts = ['Khói', 'Linh Ân'],
+  } = options;
+  const store = new MemoryRepository(namespace);
 
   const rows: DashboardSessionRow[] = [];
   let snapshotIndex = 100;
@@ -360,7 +389,7 @@ export async function buildDashboardDemo(): Promise<{
   for (const [index, entry] of days.entries()) {
     const morningId = `${entry.day}-sang`;
     const eveningId = `${entry.day}-chieu`;
-    const host = index % 2 === 0 ? 'Khói' : 'Linh Ân';
+    const host = index % 2 === 0 ? hosts[0] : hosts[1];
 
     store.addSession({
       id: morningId,
@@ -380,17 +409,19 @@ export async function buildDashboardDemo(): Promise<{
     const cumulative = new Decimal(entry.morning).plus(entry.evening).toString();
     // On 11/09 the assistant never uploaded at the handover, so the day's
     // figures cover both shifts and neither may claim them.
-    const missingBoundary = entry.day === '2026-09-11';
+    const missingBoundary = entry.day === missingBoundaryOn;
+    const morningOrders = entry.morningOrders ?? 28;
+    const dayOrders = entry.dayOrders ?? 70;
     const uploads = missingBoundary
-      ? [row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, 70)]
+      ? [row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, dayOrders)]
       : [
-          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 13:00:00`, entry.morning, 28),
-          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, 70),
+          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 13:00:00`, entry.morning, morningOrders),
+          row(snapshotIndex++, `${entry.day} 10:01:00`, `${entry.day} 16:02:00`, cumulative, dayOrders),
         ];
 
     await importLivePerformance(
       store,
-      context(`${index}`.repeat(64).slice(0, 64)),
+      context(`${namespace}${index}`.padEnd(64, '0').slice(0, 64)),
       parsed(uploads),
     );
 
@@ -433,13 +464,13 @@ export async function buildDashboardDemo(): Promise<{
   }
 
   // The brand streamed on its own one evening, already confirmed by Operation.
-  rows.push({
-    sessionId: 'inhouse-1',
+  if (inhouseGmv !== null) rows.push({
+    sessionId: `${namespace}inhouse-1`,
     sessionDate: '2026-09-12',
     ownership: 'BRAND_INHOUSE',
     confidence: 'HIGH',
     status: 'DATA_COMPLETE',
-    gmv: '8600000',
+    gmv: inhouseGmv,
     orders: 11,
     itemsSold: 12,
     customers: 11,
@@ -469,4 +500,54 @@ export async function buildDashboardDemo(): Promise<{
   );
 
   return { rows, unallocatedGmv: unallocated.amount };
+}
+
+/**
+ * Ba brand cho màn hình tổng hợp, mỗi brand có một vấn đề khác nhau: một brand
+ * thiếu report lúc bàn giao, một brand hụt target, một brand sạch nhưng nhỏ.
+ * Số vẫn do engine thật tách, không phải số gõ tay.
+ */
+export async function buildPortfolioDemo(): Promise<
+  { brandId: string; brandName: string; rows: DashboardSessionRow[]; unallocatedGmv: Decimal }[]
+> {
+  // Số đơn co giãn cùng GMV, nếu không AOV giữa các brand sẽ lệch nhau vô lý.
+  const scale = (factor: number, target: string): DemoDay[] =>
+    DEFAULT_DEMO_DAYS.map((entry) => ({
+      ...entry,
+      morning: new Decimal(entry.morning).times(factor).toFixed(2),
+      evening: new Decimal(entry.evening).times(factor).toFixed(2),
+      morningOrders: Math.max(1, Math.round(28 * factor)),
+      dayOrders: Math.max(2, Math.round(70 * factor)),
+      target,
+    }));
+
+  // Ba trạng thái khác nhau: vượt target, sát target nhưng có tiền treo, hụt target.
+  const franklin = await buildDashboardDemo({ days: scale(1, '30000000') });
+
+  const beHive = await buildDashboardDemo({
+    namespace: 'demo-b:',
+    days: scale(0.55, '12000000'),
+    missingBoundaryOn: null,
+    inhouseGmv: null,
+    hosts: ['Mai', 'Thu Hà'],
+  });
+
+  const nauMoc = await buildDashboardDemo({
+    namespace: 'demo-c:',
+    days: scale(0.28, '9000000'),
+    missingBoundaryOn: null,
+    inhouseGmv: '4100000',
+    hosts: ['Quỳnh', 'Bảo'],
+  });
+
+  return [
+    { brandId: 'franklin', brandName: 'Franklin', ...franklin },
+    { brandId: 'be-hive', brandName: 'Be Hive', ...beHive },
+    { brandId: 'nau-moc', brandName: 'Nâu Mộc', ...nauMoc },
+  ].map((brand) => ({
+    brandId: brand.brandId,
+    brandName: brand.brandName,
+    rows: brand.rows,
+    unallocatedGmv: brand.unallocatedGmv,
+  }));
 }

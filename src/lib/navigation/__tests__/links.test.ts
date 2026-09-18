@@ -17,8 +17,12 @@ describe('link trên trang chủ', () => {
     expect(hrefs).toContain('/operations/ownership');
   });
 
-  it('Finance chỉ thấy kết quả brand, không thấy màn hình vận hành', () => {
-    expect(linksFor(['FINANCE']).map((link) => link.href)).toEqual(['/dashboard']);
+  it('Finance chỉ thấy phần kết quả, không thấy màn hình vận hành', () => {
+    expect(linksFor(['FINANCE']).map((link) => link.href)).toEqual(['/dashboard/all', '/dashboard']);
+  });
+
+  it('Operation không thấy dashboard tổng hợp — họ làm việc theo brand', () => {
+    expect(linksFor(['OPERATION']).map((link) => link.href)).not.toContain('/dashboard/all');
   });
 
   it('người chưa có vai trò nào không thấy link nào', () => {
