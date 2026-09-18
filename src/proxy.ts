@@ -11,7 +11,13 @@ import { createServerClient } from '@supabase/ssr';
 const PUBLIC_PREFIXES = ['/login', '/demo', '/_next', '/favicon.ico'];
 
 export async function proxy(request: NextRequest) {
-  const response = NextResponse.next({ request });
+  // Layout không nhận được searchParams (chỉ page mới có), nhưng khung ứng dụng
+  // cần biết brand và khoảng thời gian đang chọn để dựng thanh lọc. Gắn URL vào
+  // header của request để layout đọc được — một nguồn duy nhất, thay vì mỗi
+  // trang tự dựng lại thanh lọc của riêng nó.
+  const headers = new Headers(request.headers);
+  headers.set('x-url', `${request.nextUrl.pathname}${request.nextUrl.search}`);
+  const response = NextResponse.next({ request: { headers } });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

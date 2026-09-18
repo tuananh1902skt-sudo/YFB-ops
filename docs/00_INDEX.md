@@ -54,7 +54,9 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Lịch live, tạo ca, phân ca (có cảnh báo trùng giờ)
 - [x] Đăng ký ca & duyệt đăng ký (shift_bookings)
 - [x] Dashboard brand (GMV/target, tách agency vs in-house, host, chất lượng dữ liệu)
-- [x] Đăng nhập, trang chủ theo vai trò, kho file report có phân quyền
+- [x] Đăng nhập, kho file report có phân quyền
+- [x] App Shell — điều hướng cố định + bộ lọc dùng chung (brand, khoảng thời gian)
+- [x] Trung tâm điều hành — hôm nay cần xử lý gì, đang live gì
 - [x] Script khởi tạo tổ chức (`npm run seed`) + hướng dẫn cài đặt
 - [x] Dashboard tổng hợp nhiều brand (Management) — so sánh + danh sách việc cần xem
 
@@ -68,7 +70,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 
 Xem thử giao diện (không cần Supabase): `/demo/upload`, `/demo/operations`,
 `/demo/live-console`, `/demo/session-detail`, `/demo/schedule`, `/demo/bookings`,
-`/demo/dashboard`, `/demo/portfolio`.
+`/demo/dashboard`, `/demo/portfolio`, `/demo/command-center`.
 
 Chạy thật với dữ liệu thật: làm theo `08_SETUP.md`.
 

@@ -9,6 +9,8 @@ import { toPlatformDateString } from '../parsing/primitives';
 import type { QueueCount, UnknownStretch } from '../operations/types';
 import type { DetailAttribution, DetailSnapshot, SessionDetail } from '../sessions/detail-types';
 import type { DashboardSessionRow } from '../analytics/brand-dashboard';
+import { buildCommandCenter } from '../command-center/build';
+import type { CommandCenter } from '../command-center/types';
 
 /**
  * Runs the real engine over made-up shifts so the upload screen can be reviewed
@@ -550,4 +552,72 @@ export async function buildPortfolioDemo(): Promise<
     rows: brand.rows,
     unallocatedGmv: brand.unallocatedGmv,
   }));
+}
+
+/**
+ * Một ngày vận hành thật: ca sáng đã xong, ca chiều đang live, ca tối chưa có
+ * người, cộng vài việc đang kẹt. Số của ca đã xong do engine thật tách.
+ */
+export async function buildCommandCenterDemo(): Promise<CommandCenter> {
+  const now = new Date('2026-09-18T15:30:00+07:00');
+  const day = '2026-09-18';
+  const at = (time: string) => new Date(`${day} ${time}:00+07:00`);
+
+  return buildCommandCenter({
+    today: day,
+    now,
+    sessions: [
+      {
+        sessionId: 'demo-sang',
+        brandName: 'Franklin',
+        startAt: at('10:00'),
+        endAt: at('13:00'),
+        staffNames: ['Khói', 'Linh Ân'],
+        status: 'DATA_COMPLETE',
+        ownership: 'AGENCY',
+        gmv: '31800000',
+        targetGmv: '30000000',
+      },
+      {
+        sessionId: 'demo-chieu',
+        brandName: 'Franklin',
+        startAt: at('14:00'),
+        endAt: at('17:00'),
+        staffNames: ['Mai'],
+        status: 'LIVE',
+        ownership: 'AGENCY',
+        gmv: '18200000',
+        targetGmv: '30000000',
+      },
+      {
+        sessionId: 'demo-toi',
+        brandName: 'Be Hive',
+        startAt: at('19:00'),
+        endAt: at('23:00'),
+        staffNames: [],
+        status: 'CONFIRMED',
+        ownership: 'AGENCY',
+        gmv: null,
+        targetGmv: '45000000',
+      },
+      {
+        sessionId: 'demo-inhouse',
+        brandName: 'Franklin',
+        startAt: at('08:00'),
+        endAt: at('09:30'),
+        staffNames: [],
+        status: 'DATA_COMPLETE',
+        ownership: 'BRAND_INHOUSE',
+        gmv: '4100000',
+        targetGmv: null,
+      },
+    ],
+    counts: {
+      unknownOwnership: 2,
+      awaitingData: 3,
+      pendingBookings: 1,
+      unstaffedSlots: 2,
+    },
+    unallocatedGmv: new Decimal('26300000'),
+  });
 }

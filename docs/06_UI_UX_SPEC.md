@@ -289,7 +289,46 @@ tính, loại campaign), **D3. Mapping cột file import** (khi TikTok đổi t�
 (`08_SETUP.md`). Lý do: tổ chức chỉ đổi vài lần một năm, còn một màn hình sửa brand và
 vai trò lại là màn hình dễ gây hậu quả nhất nếu bấm nhầm.
 
-### Nhóm E — Cửa vào
+### Nhóm E — Khung ứng dụng & cửa vào
+
+**E0. App Shell** — điều hướng cố định bên trái + thanh trên, dùng chung cho mọi màn
+hình sau đăng nhập (master prompt §42).
+
+Nav chia 4 nhóm: **Điều hành** (trung tâm điều hành, lịch, ca đang mở, cần xử lý),
+**Dữ liệu** (nộp dữ liệu, ownership, duyệt đăng ký), **Phân tích** (kết quả brand, toàn
+bộ brand), **Sắp có**.
+
+Nhóm "Sắp có" giữ lại các module chưa build (dự báo, SKU, doanh thu agency) ở trạng
+thái mờ kèm nhãn. Bỏ hẳn khỏi menu sẽ khiến người dùng tưởng hệ thống không làm được;
+để link dẫn vào trang trống thì tệ hơn. Nói thẳng là lựa chọn còn lại.
+
+Lọc theo vai trò **không phải phân quyền** — RLS mới là chốt chặn. Giấu link là để người
+dùng không bấm vào rồi gặp trang trống.
+
+**E0b. Bộ lọc dùng chung** (master prompt §43) — brand + khoảng thời gian trên thanh
+trên. Trạng thái nằm ở **query string**, không ở bộ nhớ trình duyệt, vì ba lý do: server
+render được ngay (không tải hết dữ liệu về máy rồi lọc), gửi link cho đồng nghiệp được,
+và bấm Back quay lại đúng thứ vừa xem. Tham số hỏng thì rơi về mặc định thay vì báo lỗi
+— một URL bị cắt khi copy không được phép làm hỏng trang.
+
+Bộ lọc chỉ hiện ở màn hình thật sự lọc theo nó. Bày ở mọi nơi thì người dùng đổi mà
+không thấy gì đổi, và sẽ mất lòng tin vào cả bộ lọc lẫn con số.
+
+**E1. Trung tâm điều hành** (`/`, master prompt §30) — trả lời đúng một câu: **ngay lúc
+này cần xử lý gì**. Không phải bản thu nhỏ của dashboard: dashboard nói chuyện đã qua,
+màn hình này nói chuyện đang diễn ra và chuyện đang kẹt.
+
+Thứ tự trên màn hình là thứ tự ưu tiên: 4 ô số hôm nay → **Cần xử lý** (xếp theo mức
+nghiêm trọng, mỗi dòng dẫn thẳng tới chỗ xử lý) → **Đang live** → ca hôm nay.
+
+Hai quy tắc dễ sai đã có test chặn:
+
+- Ca `BRAND_INHOUSE` **không có người bên agency là đúng theo định nghĩa**, không phải
+  cảnh báo thiếu người. Báo động giả lặp lại vài lần thì người dùng bỏ qua cả cái thật.
+- GMV trên màn hình này là **GMV agency**, không cộng ca brand tự live (CLAUDE.md §9).
+  Phần brand tự live hiện ngay cạnh, không hiện trong.
+
+### Nhóm E9 — Cửa vào
 
 **E1. Đăng nhập** (`/login`). Email + mật khẩu. Không có đăng ký tự do: ai vào được hệ
 thống là một quyết định vận hành, không phải ai biết URL cũng vào được.
