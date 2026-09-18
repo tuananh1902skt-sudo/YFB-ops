@@ -56,9 +56,20 @@ supabase link --project-ref <project-ref>   # project-ref nằm trong URL của 
 supabase db push
 ```
 
+Repo đã có sẵn `supabase/config.toml` nên không cần chạy `supabase init`.
+
 `db push` chạy toàn bộ migration trong `supabase/migrations/`, gồm cả bucket `imports`
 và policy của nó. **Không tạo bucket bằng tay trên giao diện** — bucket tạo tay sẽ
 không có policy, và lỗi đó chỉ lộ ra khi trợ live bấm nộp file.
+
+Chạy lại `db push` nhiều lần không sao: các migration đều viết để áp lại được.
+
+Nếu push dừng ở thông báo *"role đang chạy migration không sở hữu storage.objects"*: đó
+là bảng của Supabase chứ không phải của repo, và một số project không cho role mặc định
+tạo policy trên đó. Cách xử lý: mở SQL Editor trên dashboard, dán nguyên nội dung
+`supabase/migrations/20260917000009_import_storage.sql` rồi chạy. **Đừng bỏ qua bước
+này** — thiếu policy thì màn hình nộp file sẽ lỗi, và tệ hơn là file của brand này có
+thể lọt sang brand khác.
 
 Kiểm chứng: Table Editor phải thấy `live_sessions`, `room_snapshots`,
 `session_attributions`; Storage phải thấy bucket `imports` ở trạng thái private.
@@ -158,5 +169,6 @@ Sau khi deploy, thêm URL thật vào Supabase → Authentication → URL Config
 | "Hệ thống chưa được cấu hình" ở mọi trang | Thiếu biến môi trường, hoặc chưa khởi động lại `npm run dev` sau khi sửa `.env.local` |
 | Đăng nhập báo "Không kết nối được máy chủ" | `NEXT_PUBLIC_SUPABASE_URL` sai, hoặc project Supabase đang tạm dừng |
 | Đăng nhập được nhưng trang chủ trống | Tài khoản chưa được gán vai trò — chạy lại seed hoặc kiểm tra `user_roles` |
-| Nộp file báo "Không lưu được file lên kho" | Bucket `imports` chưa có, hoặc tạo bằng tay nên thiếu policy — chạy lại `supabase db push` |
+| Nộp file báo "Không lưu được file lên kho" | Bucket `imports` chưa có, hoặc tạo bằng tay nên thiếu policy — chạy lại `supabase db push`, xem thêm bước 3 |
+| `supabase link` báo "failed to load config" | Đang đứng sai thư mục — chạy ở gốc repo, nơi có `supabase/config.toml` |
 | Nộp file xong không thấy ca nào khớp | Khung giờ ca lệch với thời gian live thật; xem `/operations` để xác nhận ownership |

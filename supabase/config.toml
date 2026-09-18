@@ -1,0 +1,12 @@
+# Cấu hình tối thiểu để `supabase link` và `supabase db push` chạy được.
+# Không có file này, CLI báo "failed to load config" ngay ở lệnh link.
+#
+# project_id chỉ là tên gọi phía máy bạn. Project thật được xác định bằng
+# `supabase link --project-ref <ref>`, ref nằm trong URL của dashboard.
+project_id = "yfb-ops"
+
+[db]
+# Chỉ ảnh hưởng `supabase start` (chạy Postgres cục bộ). `db push` lên project
+# thật không dùng giá trị này.
+port = 54322
+major_version = 15
