@@ -11,6 +11,9 @@ import type { DetailAttribution, DetailSnapshot, SessionDetail } from '../sessio
 import type { DashboardSessionRow } from '../analytics/brand-dashboard';
 import { buildCommandCenter } from '../command-center/build';
 import type { CommandCenter } from '../command-center/types';
+import { recommendTarget } from '../targets/recommend';
+import { toSuggestionView, type TargetSuggestionView } from '../targets/presentation';
+import type { HistoricalShift } from '../targets/types';
 
 /**
  * Runs the real engine over made-up shifts so the upload screen can be reviewed
@@ -620,4 +623,75 @@ export async function buildCommandCenterDemo(): Promise<CommandCenter> {
     },
     unallocatedGmv: new Decimal('26300000'),
   });
+}
+
+/**
+ * Ba trạng thái của Target Engine, tính bằng chính engine thật: đủ dữ liệu, thiếu
+ * dữ liệu, và không đủ để đề xuất. Trạng thái thứ ba quan trọng không kém hai cái
+ * đầu — nó là lúc hệ thống từ chối bịa một con số.
+ */
+export function buildTargetDemo(): { title: string; note: string; view: TargetSuggestionView }[] {
+  const today = '2026-09-18';
+  const dayBefore = (daysAgo: number) => {
+    const value = new Date(`${today}T00:00:00Z`);
+    value.setUTCDate(value.getUTCDate() - daysAgo);
+    return value.toISOString().slice(0, 10);
+  };
+
+  const history: HistoricalShift[] = [];
+  // 24 ca thường trong 80 ngày, GMV dao động quanh 9–13tr/giờ.
+  for (let index = 0; index < 24; index += 1) {
+    const swing = [9_000_000, 11_500_000, 13_000_000, 10_200_000][index % 4];
+    history.push({
+      sessionId: `daily-${index}`,
+      sessionDate: dayBefore(index * 3 + 1),
+      campaignTypeCode: 'DAILY',
+      hostNames: [index % 3 === 0 ? 'Linh Ân' : 'Khói'],
+      gmv: new Decimal(swing).times(3).toFixed(0),
+      liveMinutes: 180,
+    });
+  }
+  // 4 ca payday, hiệu quả cao hơn hẳn.
+  for (let index = 0; index < 4; index += 1) {
+    history.push({
+      sessionId: `payday-${index}`,
+      sessionDate: dayBefore(index * 15 + 5),
+      campaignTypeCode: 'PAYDAY',
+      hostNames: ['Linh Ân'],
+      gmv: new Decimal(24_000_000).times(4).toFixed(0),
+      liveMinutes: 240,
+    });
+  }
+
+  return [
+    {
+      title: 'Ca payday, host Linh Ân',
+      note: 'Đủ lịch sử, có cả hệ số campaign lẫn hệ số host.',
+      view: toSuggestionView(
+        recommendTarget(
+          history,
+          { plannedHours: 4, campaignTypeCode: 'PAYDAY', hostNames: ['Linh Ân'] },
+          today,
+        ),
+      ),
+    },
+    {
+      title: 'Ca thường 3 tiếng',
+      note: 'Chỉ có baseline và xu hướng — không có hệ số nào khác áp dụng được.',
+      view: toSuggestionView(
+        recommendTarget(history, { plannedHours: 3, campaignTypeCode: null, hostNames: [] }, today),
+      ),
+    },
+    {
+      title: 'Brand mới, 4 ca',
+      note: 'Hệ thống từ chối đề xuất thay vì đưa ra một con số trông hợp lý.',
+      view: toSuggestionView(
+        recommendTarget(
+          history.slice(0, 4),
+          { plannedHours: 3, campaignTypeCode: null, hostNames: [] },
+          today,
+        ),
+      ),
+    },
+  ];
 }

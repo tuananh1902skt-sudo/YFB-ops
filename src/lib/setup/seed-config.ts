@@ -30,6 +30,12 @@ export const SETTING_KEYS = [
   'target_warning_percent',
   'data_confidence_good_percent',
   'data_confidence_warning_percent',
+  'target_min_samples',
+  'target_confidence_high_samples',
+  'target_confidence_medium_samples',
+  'target_recent_window_days',
+  'target_history_window_days',
+  'target_min_factor_samples',
 ] as const;
 
 export type UserRoleCode = (typeof USER_ROLES)[number];

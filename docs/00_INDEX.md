@@ -57,6 +57,7 @@ liền kề**. Chi tiết ở `01_BUSINESS_RULES.md` mục 6.
 - [x] Đăng nhập, kho file report có phân quyền
 - [x] App Shell — điều hướng cố định + bộ lọc dùng chung (brand, khoảng thời gian)
 - [x] Trung tâm điều hành — hôm nay cần xử lý gì, đang live gì
+- [x] Target Engine — đề xuất khoảng target, hệ số đo từ lịch sử brand
 - [x] Script khởi tạo tổ chức (`npm run seed`) + hướng dẫn cài đặt
 - [x] Dashboard tổng hợp nhiều brand (Management) — so sánh + danh sách việc cần xem
 
@@ -70,7 +71,7 @@ npx tsx scripts/dry-run-import.ts <file.xlsx>   # chạy cả pipeline trên fil
 
 Xem thử giao diện (không cần Supabase): `/demo/upload`, `/demo/operations`,
 `/demo/live-console`, `/demo/session-detail`, `/demo/schedule`, `/demo/bookings`,
-`/demo/dashboard`, `/demo/portfolio`, `/demo/command-center`.
+`/demo/dashboard`, `/demo/portfolio`, `/demo/command-center`, `/demo/target`.
 
 Chạy thật với dữ liệu thật: làm theo `08_SETUP.md`.
 

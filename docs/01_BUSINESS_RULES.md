@@ -306,6 +306,43 @@ nhận 1 target ở cấp kỳ (tháng/tuần/campaign), phân bổ xuống từ
 hiệu suất lịch sử theo khung giờ, loại ngày (thường/campaign/payday), và điều chỉnh thủ
 công của Operation. Không tự động khoá — luôn cho override, có audit log.
 
+### 8.1. Target Engine — hệ thống đề xuất, người quyết định
+
+Hệ thống **gợi ý một khoảng** cho từng ca, không tự đặt target. Công thức và ngưỡng ở
+`docs/05` §7b; phần dưới đây là các quy tắc nghiệp vụ kèm theo.
+
+**Baseline lấy từ đâu.** `GMV/giờ` của các ca agency **đã quy kết được** trong cửa sổ
+lịch sử, trung bình có trọng số ưu tiên dữ liệu gần. Ba loại ca bị loại khỏi baseline:
+ca dùng chung đoạn live (`SHARED_UNALLOCATED` — không có con số riêng), ca
+`BRAND_INHOUSE` và ca `UNKNOWN` (không phải kết quả của agency).
+
+**Hệ số phải đo, không được viết cứng.** Uplift của campaign và của host đo bằng cách so
+`GMV/giờ` của nhóm đó với nhóm tham chiếu, trên lịch sử của **chính brand đó**. Một hệ
+số gõ tay kiểu "payday +25%" sẽ đúng cho một brand và sai cho brand khác, mà không ai
+biết nó sai.
+
+**Không đủ mẫu thì nói không đủ.** Dưới ngưỡng, hệ thống trả lý do cụ thể thay vì một
+con số trông hợp lý. Từng hệ số cũng vậy: thiếu mẫu thì bị bỏ qua và ghi rõ lý do, không
+lặng lẽ coi bằng 1.
+
+**Điểm giữa luôn nằm trong khoảng.** Độ rộng khoảng đo từ phân vị 25–75 của lịch sử,
+nhưng áp vào điểm giữa dưới dạng **tỷ lệ so với trung vị**. Nhân thẳng phân vị với các
+hệ số sẽ khiến khoảng và điểm giữa dựng trên hai gốc khác nhau, và điểm giữa rơi ra
+ngoài khoảng của chính nó.
+
+**Yếu tố chưa có dữ liệu phải hiện ra.** Tồn kho, voucher, ngân sách ads, mùa vụ hiện
+không có nguồn. Chúng được liệt kê ngay dưới đề xuất để người đọc biết đề xuất chưa tính
+tới chúng — một con số trông đầy đủ mà thật ra thiếu đầu vào còn nguy hiểm hơn.
+
+**Ghi nhận cả khi theo lẫn khi không theo.** `TARGET_FOLLOWED`, `TARGET_OVERRIDDEN`,
+`TARGET_SUGGESTION_IGNORED` vào `audit_logs` kèm đề xuất và mức lệch. Mục đích không
+phải giám sát người đặt, mà để sau này đối chiếu xem đề xuất của hệ thống hay phán đoán
+của con người sát thực tế hơn — chỉ ghi lúc lệch thì mẫu so sánh đã thiên lệch từ đầu.
+
+Cố ý **không** bắt nhập lý do khi đặt khác đề xuất. Target là quyết định của con người
+theo bản chất, còn đề xuất chỉ là gợi ý; khác với override một con số do engine tính ra,
+chỗ đó lý do là bắt buộc (mục 13).
+
 ---
 
 ## 9. Contract / Fee Model (linh hoạt theo brand)

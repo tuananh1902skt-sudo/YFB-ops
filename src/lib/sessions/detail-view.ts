@@ -109,6 +109,9 @@ const AUDIT_LABELS: Record<string, string> = {
   WINDOW_EXTENDED_BY_MERGE: 'Mở rộng khung giờ thực tế do gộp đoạn live',
   MISMATCH_REPORTED: 'Trợ live báo số liệu không khớp',
   OVERWRITE: 'Ghi đè số liệu bằng file mới hơn',
+  TARGET_FOLLOWED: 'Đặt target theo đề xuất của hệ thống',
+  TARGET_OVERRIDDEN: 'Đặt target khác đề xuất của hệ thống',
+  TARGET_SUGGESTION_IGNORED: 'Không đặt target dù hệ thống có đề xuất',
 };
 
 const OWNERSHIP_LABELS: Record<string, string | null> = {

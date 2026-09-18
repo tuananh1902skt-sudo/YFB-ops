@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { NoticeBanner } from '@/components/upload/notice-banner';
+import { TargetSuggestion } from '@/components/targets/target-suggestion';
+import type { TargetSuggestionView } from '@/lib/targets/presentation';
 
 export interface BrandOption {
   brandId: string;
@@ -30,6 +32,8 @@ export function SessionFormDialog({
     plannedStartAt: string;
     plannedEndAt: string;
     targetGmv: string | null;
+    /** Đề xuất tại thời điểm lưu, để đối chiếu sau này khi người dùng đặt khác. */
+    suggestedTargetGmv: string | null;
     staffNeeds: { role: 'HOST' | 'ASSISTANT'; headcount: number }[];
   }) => void;
 }) {
@@ -40,9 +44,50 @@ export function SessionFormDialog({
   const [hosts, setHosts] = useState(1);
   const [assistants, setAssistants] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [suggestion, setSuggestion] = useState<TargetSuggestionView | null>(null);
 
   const brand = brands.find((item) => item.brandId === brandId);
   const crossesMidnight = endTime <= startTime;
+
+  const plannedStartAt = date ? `${date}T${startTime}:00+07:00` : null;
+  const plannedEndAt = date
+    ? `${crossesMidnight ? nextDay(date) : date}T${endTime}:00+07:00`
+    : null;
+
+  // Đề xuất tính lại mỗi khi brand hoặc khung giờ đổi: một target đề xuất cho
+  // khung giờ cũ là con số sai, và sai kiểu khó thấy nhất.
+  useEffect(() => {
+    if (!open || !brand || !plannedStartAt || !plannedEndAt) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      // Xoá đề xuất cũ bên trong hàm async chứ không ở thân effect: gọi setState
+      // thẳng trong thân effect làm render dây chuyền, và ESLint chặn đúng chỗ đó.
+      setSuggestion(null);
+      try {
+        const response = await fetch('/api/targets/recommend', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            brandId: brand.brandId,
+            plannedStartAt: new Date(plannedStartAt).toISOString(),
+            plannedEndAt: new Date(plannedEndAt).toISOString(),
+          }),
+        });
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as { suggestion: TargetSuggestionView };
+        if (!cancelled) setSuggestion(body.suggestion);
+      } catch {
+        // Không đề xuất được thì ô nhập vẫn dùng bình thường — đề xuất là phần
+        // hỗ trợ, không phải điều kiện để đặt được target.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, brand, plannedStartAt, plannedEndAt]);
 
   function submit() {
     if (!date || !brand) {
@@ -51,18 +96,15 @@ export function SessionFormDialog({
     }
     setError(null);
 
-    const start = `${date}T${startTime}:00+07:00`;
     // A shift typed as 20:00 → 00:30 means the next morning, and the day it
     // belongs to is still the day it started (docs/01 §12).
-    const endDate = crossesMidnight ? nextDay(date) : date;
-    const end = `${endDate}T${endTime}:00+07:00`;
-
     onSubmit({
       brandId: brand.brandId,
       platformAccountId: brand.platformAccountId,
-      plannedStartAt: new Date(start).toISOString(),
-      plannedEndAt: new Date(end).toISOString(),
+      plannedStartAt: new Date(plannedStartAt!).toISOString(),
+      plannedEndAt: new Date(plannedEndAt!).toISOString(),
       targetGmv: targetGmv.trim() === '' ? null : targetGmv.replace(/\D/g, ''),
+      suggestedTargetGmv: suggestion?.pointValue ?? null,
       staffNeeds: [
         ...(hosts > 0 ? [{ role: 'HOST' as const, headcount: hosts }] : []),
         ...(assistants > 0 ? [{ role: 'ASSISTANT' as const, headcount: assistants }] : []),
@@ -133,6 +175,8 @@ export function SessionFormDialog({
             className="tabular mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
           />
         </label>
+
+        <TargetSuggestion view={suggestion} onUse={setTargetGmv} />
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block text-sm">

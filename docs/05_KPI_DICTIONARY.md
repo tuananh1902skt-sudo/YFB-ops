@@ -175,6 +175,42 @@ Khi ca có `ENDED_EARLY` hoặc `OVERTIME_EXTENDED`: Achievement vẫn so với 
 nhưng UI phải hiển thị cờ cho biết thời lượng thực tế lệch kế hoạch — nếu không, ca off
 sớm sẽ luôn bị đánh giá là kém.
 
+### 7b. Target đề xuất (Target Engine)
+
+Hệ thống **gợi ý một khoảng**, không tự đặt target. Người quyết định vẫn là Account /
+Management (master prompt §9).
+
+| KPI | Công thức | Cấp được phép | Ghi chú |
+|---|---|---|---|
+| **Baseline GMV/giờ** | Trung bình có trọng số theo thời gian của `GMV/giờ` các ca đã quy kết | Brand | Trọng số ưu tiên dữ liệu gần; không dùng ca `SHARED_UNALLOCATED`, `BRAND_INHOUSE`, `UNKNOWN` |
+| **Hệ số xu hướng** | `GMV/giờ (30 ngày gần nhất) / GMV/giờ (60 ngày trước đó)` | Brand | Bỏ qua nếu một trong hai cửa sổ không đủ mẫu |
+| **Hệ số campaign** | `GMV/giờ (loại campaign X) / GMV/giờ (DAILY)` | Brand × loại campaign | Bỏ qua nếu không đủ mẫu |
+| **Hệ số host** | `GMV/giờ (host được phân) / GMV/giờ (toàn brand)` | Brand × host | Bỏ qua nếu không đủ mẫu |
+| **Target đề xuất** | `Baseline × các hệ số áp dụng được × số giờ kế hoạch` | Ca | Luôn kèm khoảng, không bao giờ chỉ một con số |
+| **Khoảng đề xuất** | Phân vị 25 và 75 của `GMV/giờ` lịch sử, nhân cùng bộ hệ số và số giờ | Ca | Là khoảng **đã từng đạt thật**, không phải ±X% nghĩ ra |
+
+**Bốn quy tắc bắt buộc:**
+
+1. **Mọi hệ số phải đo từ lịch sử của chính brand đó, không được viết cứng trong code.**
+   Một hệ số "campaign +25%" gõ tay là con số bịa — nó sẽ đúng cho một brand và sai cho
+   brand khác, mà không ai biết nó sai.
+2. **Yếu tố không có dữ liệu thì khai báo là chưa áp dụng, không lặng lẽ coi bằng 1.**
+   Tồn kho, voucher, ngân sách ads, mùa vụ hiện **không có nguồn dữ liệu** trong hệ
+   thống. Chúng phải được liệt kê ra như phần còn thiếu, để người đọc biết đề xuất này
+   chưa tính tới chúng.
+3. **Dưới ngưỡng mẫu tối thiểu thì không đề xuất.** Trả về lý do cụ thể ("brand này mới
+   có 3 ca đã quy kết") thay vì một con số trông có vẻ hợp lý.
+4. **Độ tin cậy quyết định độ rộng khoảng, và phải hiện ra.** Ít dữ liệu → khoảng rộng.
+   Một khoảng hẹp dựng trên 4 ca là lời nói dối nguy hiểm hơn là không có đề xuất.
+
+Ngưỡng nằm ở `system_settings`, không viết cứng: `target_min_samples`,
+`target_confidence_high_samples`, `target_confidence_medium_samples`,
+`target_recent_window_days`, `target_history_window_days`.
+
+**Người dùng đặt khác đề xuất là chuyện bình thường** — họ biết những gì hệ thống không
+biết. Nhưng khi lệch, hệ thống lưu lại cả đề xuất lẫn giá trị đã chọn kèm lý do
+(CLAUDE.md §11), để sau này đối chiếu xem ai đúng.
+
 ---
 
 ## 8. KPI nhân sự

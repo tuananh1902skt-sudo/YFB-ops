@@ -153,6 +153,11 @@ Migration `20260917000010_analytics_thresholds.sql` thêm nhóm ngưỡng của 
 `data_confidence_warning_percent` = 50. Đây là quyết định kinh doanh chứ không phải hằng
 số kỹ thuật, nên nằm ở đây để Operation sửa được mà không cần deploy.
 
+Migration `20260917000011_target_engine.sql` thêm ngưỡng của Target Engine:
+`target_min_samples` = 6, `target_confidence_high_samples` = 20,
+`target_confidence_medium_samples` = 10, `target_recent_window_days` = 30,
+`target_history_window_days` = 90, `target_min_factor_samples` = 3 (docs/05 §7b).
+
 ---
 
 ## Nhóm B — Campaign & Planning
