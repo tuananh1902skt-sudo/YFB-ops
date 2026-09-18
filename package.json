@@ -12,7 +12,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "shifts-from-report": "tsx scripts/shifts-from-report.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

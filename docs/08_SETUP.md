@@ -128,6 +128,21 @@ Trang chủ hiện đúng những màn hình vai trò đó dùng được.
 chứng minh nó *đúng*.
 
 1. **Tạo một ca** ở `/schedule`, đặt khung giờ trùng với một ca live đã diễn ra thật.
+
+   Brand đã live một thời gian rồi thì dựng lại khung ca từ chính file report nhanh hơn
+   gõ tay:
+
+   ```bash
+   npm run shifts-from-report -- <report.xlsx> --date 2026-09-13
+   npm run shifts-from-report -- <report.xlsx> --date 2026-09-13 --commit
+   ```
+
+   Lệnh đầu chỉ in ra, không ghi gì. Nó ghép các room liền nhau thành một ca, nên ca bị
+   mất sóng rồi bật lại vẫn ra một ca chứ không thành hai.
+
+   **Đối chiếu khung giờ nó đề xuất với lịch thật của bạn trước khi `--commit`.** Dựng
+   ngược ca từ report chỉ đúng cho lần nạp dữ liệu quá khứ đầu tiên — bình thường ca
+   phải được lên kế hoạch trước, rồi report mới khớp vào.
 2. **Phân người** vào ca đó.
 3. **Nộp file report thật** ở `/upload` — đúng file trợ live tải về lúc kết thúc ca.
 4. **Đọc màn hình đối soát**: nó phải nói rõ phép trừ nào đang được thực hiện
